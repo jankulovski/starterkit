@@ -40,6 +40,20 @@ class FortifyServiceProvider extends ServiceProvider
     {
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
         Fortify::createUsersUsing(CreateNewUser::class);
+
+        // Prevent suspended users from logging in
+        Fortify::authenticateUsing(function (Request $request) {
+            $user = \App\Models\User::where('email', $request->email)->first();
+
+            if ($user && \Illuminate\Support\Facades\Hash::check($request->password, $user->password)) {
+                if ($user->isSuspended()) {
+                    return null; // Return null to prevent authentication
+                }
+                return $user;
+            }
+
+            return null;
+        });
     }
 
     /**

@@ -32,17 +32,29 @@ import { cn, isSameUrl, resolveUrl } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem, type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, Menu, Search } from 'lucide-react';
+import { BookOpen, Folder, LayoutGrid, Menu, Search, Shield } from 'lucide-react';
 import AppLogo from './app-logo';
 import AppLogoIcon from './app-logo-icon';
 
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-];
+const getMainNavItems = (isAdmin: boolean): NavItem[] => {
+    const items: NavItem[] = [
+        {
+            title: 'Dashboard',
+            href: dashboard(),
+            icon: LayoutGrid,
+        },
+    ];
+
+    if (isAdmin) {
+        items.push({
+            title: 'Admin',
+            href: '/admin',
+            icon: Shield,
+        });
+    }
+
+    return items;
+};
 
 const rightNavItems: NavItem[] = [
     {
@@ -66,6 +78,8 @@ interface AppHeaderProps {
 
 export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
     const page = usePage<SharedData>();
+    const isAdmin = page.props.auth.user?.is_admin ?? false;
+    const mainNavItems = getMainNavItems(isAdmin);
     const { auth } = page.props;
     const getInitials = useInitials();
     return (

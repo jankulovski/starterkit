@@ -11,18 +11,30 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
-import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid } from 'lucide-react';
+import { type NavItem, type SharedData } from '@/types';
+import { Link, usePage } from '@inertiajs/react';
+import { BookOpen, Folder, LayoutGrid, Shield } from 'lucide-react';
 import AppLogo from './app-logo';
 
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-];
+const getMainNavItems = (isAdmin: boolean): NavItem[] => {
+    const items: NavItem[] = [
+        {
+            title: 'Dashboard',
+            href: dashboard(),
+            icon: LayoutGrid,
+        },
+    ];
+
+    if (isAdmin) {
+        items.push({
+            title: 'Admin',
+            href: '/admin',
+            icon: Shield,
+        });
+    }
+
+    return items;
+};
 
 const footerNavItems: NavItem[] = [
     {
@@ -38,6 +50,10 @@ const footerNavItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
+    const { auth } = usePage<SharedData>().props;
+    const isAdmin = auth.user?.is_admin ?? false;
+    const mainNavItems = getMainNavItems(isAdmin);
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>

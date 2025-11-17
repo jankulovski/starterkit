@@ -200,13 +200,6 @@ You must:
   - Services included: PHP 8.4, PostgreSQL 18, Redis 8, Node.js 24
   - Startup command: `docker compose up`
   - Laravel server and Vite dev server start automatically
-- [ ] Task 2: Refine Auth & Security (Google, Magic Link, Password/2FA behavior)
-- [ ] Task 3: Implement Teams / Workspaces
-- [ ] Task 4: Implement Billing (team-based subscriptions)
-- [ ] Task 5: Implement Settings area (Account, Security, Workspace, Notifications)
-- [ ] Task 6: Implement Admin panel
-- [ ] Task 7: Implement Activity logging & Notifications
-- [ ] Task 8: Final documentation and cleanup
 
 ⸻
 
@@ -374,3 +367,189 @@ Expectations for Cursor on This Task
 
 ⸻
 
+Task 2: Admin Area & User Management
+
+Goal
+
+Implement the first version of the Admin area of the application, based on the Laravel React Starter Kit, with:
+	•	A dedicated Admin section inside the dashboard.
+	•	Strict admin-only access (backend + frontend).
+	•	A User management view (list + detail, with basic actions).
+	•	A design and UX that feels native to the starter kit (same layout, components, and style).
+	•	A structure that is easy to extend later (e.g. when Teams, Billing, etc. are added).
+
+This task focuses on users, since the starter kit currently only has the User entity.
+
+⸻
+
+2.1 Admin Access & Permissions
+
+Requirements:
+	1.	Admin flag on User
+	•	The system must have a way to distinguish admin users from normal users.
+	•	Use a boolean flag on the user model (e.g. is_admin).
+	•	There must be a clear, canonical way to check if a user is an admin in code.
+	2.	Admin-only routes and backend protection
+	•	All admin-related routes must:
+	•	Require authentication.
+	•	Require that the current user is an admin.
+	•	It must not be possible to access admin routes by guessing URLs or by enabling UI elements on the client side.
+	•	Even if a non-admin user tampers with the frontend or makes a direct HTTP call, they must receive a “forbidden” response.
+	3.	Admin-only UI
+	•	The Admin section in the dashboard (sidebar link and any admin-specific navigation) must be:
+	•	Visible only to admin users.
+	•	Completely hidden for non-admin users.
+	•	If a user is not an admin:
+	•	They must not see the Admin link in the sidebar.
+	•	They must not be able to access admin pages by URL.
+	4.	Admin user bootstrap
+	•	There must be a documented way (e.g. via seeder or simple instructions) to ensure at least one admin user exists.
+	•	This can be documented in README / specs:
+	•	e.g. “Run seeder X” or “Update is_admin manually for your first admin user”.
+
+⸻
+
+2.2 Admin Section in the Dashboard (UI & Navigation)
+
+Requirements:
+	1.	Admin entry point
+	•	Add an “Admin” section/link in the main dashboard navigation, consistent with the starter kit’s sidebar style.
+	•	This link should lead to an Admin home/overview page.
+	2.	Admin layout
+	•	The Admin pages must:
+	•	Use the same main dashboard layout as the rest of the app (sidebar + header).
+	•	Follow the same typography, spacing, and components (buttons, tables, cards, etc.).
+	•	Admin pages should feel like a sub-area of the existing dashboard, not a separate application.
+	3.	Admin home / overview
+	•	Provide a simple Admin overview page that can be extended later.
+	•	At minimum, this page should:
+	•	Indicate clearly that the user is in the Admin area (title, heading).
+	•	Show some basic metrics/summary related to users:
+	•	e.g. total user count, number of admins, latest signups (high-level).
+
+⸻
+
+2.3 User Management: List & Detail
+
+Since there are no other entities yet, the Admin area must implement User management as its first core feature.
+
+2.3.1 User List (Admin → Users)
+Requirements:
+	•	Provide a Users section under Admin where admins can:
+	•	See a paginated list of users.
+	•	See key columns for each user:
+	•	ID (or some unique identifier).
+	•	Name.
+	•	Email.
+	•	When the account was created.
+	•	Whether they are an admin.
+	•	(Optionally) last login / last activity if such data is available or easy to derive.
+	•	Sort or at least filter/search users by:
+	•	Name and/or email (basic search is sufficient).
+	•	The list UI must:
+	•	Use the existing dashboard styling and components (e.g. table-style layout using shadcn/ui).
+	•	Show clear states:
+	•	Loading state.
+	•	“No users found” state when filters return nothing.
+
+2.3.2 User Detail View
+Requirements:
+	•	Admins must be able to click into a User detail view for each user.
+	•	The User detail view should present:
+	•	Basic profile information:
+	•	Name.
+	•	Email.
+	•	Admin status.
+	•	Created date.
+	•	Any relevant account/security-related flags that are easy to show now:
+	•	e.g. whether they have verified their email, whether they have 2FA enabled (if this data is available already).
+	•	A summary of activity (optional at this stage, or placeholder for later):
+	•	e.g. last login, last seen, or a placeholder indicating this will be expanded later.
+	•	The User detail page must:
+	•	Respect the existing dashboard style.
+	•	Provide a clear “Back to users list” navigation.
+
+⸻
+
+2.4 Admin Actions on Users
+
+The Admin area must provide sensible, safe actions on users. These actions must be:
+	•	Accessible only to admins.
+	•	Integrated with backend access control (not just visible/invisible UI).
+
+At a minimum, the following should be supported:
+	1.	Toggle admin status
+	•	Admins must be able to promote a user to admin, or demote an admin back to a regular user.
+	•	The system must prevent obviously unsafe operations:
+	•	For example, it should be impossible to demote the last remaining admin, to avoid locking everyone out.
+	•	UI should:
+	•	Clearly indicate whether a user is an admin.
+	•	Provide obvious controls to change that status (button, switch, etc.).
+	•	Show confirmation or feedback (success/error messages).
+	2.	Edit basic user information (optional but desirable)
+	•	Consider allowing admins to edit:
+	•	Name.
+	•	Email.
+	•	If implemented, ensure:
+	•	Changes obey validation rules.
+	•	Email changes respect verification rules (if needed).
+	•	If there is any conflict with future “self-service” settings or email verification flows, the system should:
+	•	Prefer consistency and safety.
+	•	Potentially restrict email changes to user-side only and keep admin editing to name and flags.
+	3.	User status / deactivation (optional)
+	•	If the project decides to support a “deactivated” or “banned” state (e.g. is_active flag), the Admin area should:
+	•	Allow toggling that status.
+	•	Ensure deactivated users cannot log in.
+	•	This is optional for this first pass. If not implemented now, the Admin UI should be designed so it can be easily extended later with such a flag.
+
+Note: If any of these actions (like deactivation) are not implemented now, they should not be surfaced as clickable controls. Do not show UI that does nothing.
+
+⸻
+
+2.5 Security & Robustness
+
+Requirements:
+	•	All admin operations must be protected:
+	•	Authenticated.
+	•	Admin-authorized (checking the admin flag or equivalent).
+	•	There must be no way for a non-admin user to:
+	•	Access admin lists or detail views.
+	•	Modify users via admin endpoints.
+	•	Input validation must be in place for:
+	•	Search parameters.
+	•	Edit operations (e.g. name/email formats).
+	•	Admin status changes.
+
+Any errors (e.g. invalid input, permission violation, unexpected issues) must:
+	•	Return appropriate HTTP status codes.
+	•	Show clear, user-friendly messages in the UI (not raw stack traces).
+
+⸻
+
+2.6 Integration With the Rest of the System
+
+Even though only User exists for now, this Admin area is the foundation for future admin features (Teams, Billing, Activity, etc.).
+
+Requirements:
+	•	The Admin area must be designed to be extendable:
+	•	Admin navigation should be structured so that new sections (e.g. Teams, Billing) can be added later without redesigning everything.
+	•	The Admin home/overview page can be extended later with more metrics/cards.
+	•	Any changes to shared layout/nav must:
+	•	Not break existing user-facing pages.
+	•	Maintain a coherent user experience between normal dashboard pages and the Admin area.
+
+⸻
+
+2.7 Specs & Task List Updates
+
+Once the Admin area and user management are implemented:
+	•	The specs.md roadmap must be updated:
+	•	Mark the “Admin basics & User management” task as completed ([x]).
+	•	Optionally list a short summary, such as:
+	•	“Admin area added with user list, user detail, admin-only access, and admin toggling.”
+	•	If, during implementation, it becomes clear that additional tasks are needed (e.g. “Track last login” or “Implement user deactivation system”), the agent may:
+	•	Add new tasks/subtasks to specs.md.
+	•	Mark them as TODO or In Progress.
+	•	Implement them if they are necessary to make the Admin feature coherent and robust.
+
+⸻

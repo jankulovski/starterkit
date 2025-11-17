@@ -48,7 +48,27 @@ This project includes a Docker-based development environment for easy local setu
    docker compose exec app php artisan migrate
    ```
 
-7. **Access the application:**
+7. **Create an admin user (optional):**
+   ```bash
+   docker compose exec app php artisan db:seed --class=AdminUserSeeder
+   ```
+   This will create an admin user with:
+   - Email: `admin@example.com`
+   - Password: `password`
+   - Admin privileges enabled
+
+   Alternatively, you can manually set a user as admin by updating the `is_admin` column in the database:
+   ```bash
+   docker compose exec app php artisan tinker
+   ```
+   Then run:
+   ```php
+   $user = App\Models\User::where('email', 'your@email.com')->first();
+   $user->is_admin = true;
+   $user->save();
+   ```
+
+8. **Access the application:**
    - Application: http://localhost:8000
    - Vite dev server: http://localhost:5173 (hot reloading enabled)
 
