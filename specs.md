@@ -190,17 +190,6 @@ You must:
 	•	Ask questions when unclear
 	•	Behave as an expert developer, not just a code generator
 
-
-⸻
-
-# Project Tasks / Roadmap
-
-- [x] Task 0: Set up general instructions and guidelines
-- [x] Task 1: Dockerize the application for local development
-  - Services included: PHP 8.4, PostgreSQL 18, Redis 8, Node.js 24
-  - Startup command: `docker compose up`
-  - Laravel server and Vite dev server start automatically
-
 ⸻
 
 Task Management and specs.md Usage
@@ -544,12 +533,42 @@ Requirements:
 
 Once the Admin area and user management are implemented:
 	•	The specs.md roadmap must be updated:
-	•	Mark the “Admin basics & User management” task as completed ([x]).
+	•	Mark the "Admin basics & User management" task as completed ([x]).
 	•	Optionally list a short summary, such as:
-	•	“Admin area added with user list, user detail, admin-only access, and admin toggling.”
-	•	If, during implementation, it becomes clear that additional tasks are needed (e.g. “Track last login” or “Implement user deactivation system”), the agent may:
+	•	"Admin area added with user list, user detail, admin-only access, and admin toggling."
+	•	If, during implementation, it becomes clear that additional tasks are needed (e.g. "Track last login" or "Implement user deactivation system"), the agent may:
 	•	Add new tasks/subtasks to specs.md.
 	•	Mark them as TODO or In Progress.
 	•	Implement them if they are necessary to make the Admin feature coherent and robust.
+
+**Status: Completed**
+- Admin area implemented with strict access control (middleware + UI hiding)
+- Admin overview page with user metrics and "Manage Users" button
+- User list page with pagination, search, and suspended status indicators
+- User detail page with profile information, edit capabilities, and account actions
+- Admin status toggle with last admin protection
+- User suspension system: suspend/unsuspend functionality with authentication prevention
+- All admin operations protected with backend validation and authorization
+- AdminUserSeeder created for easy admin user creation
+- Documentation updated in README.md
+
+⸻
+
+# Project Tasks / Roadmap
+
+- [x] Task 0: Set up general instructions and guidelines
+- [x] Task 1: Dockerize the application for local development
+  - Services included: PHP 8.4, PostgreSQL 18, Redis 8, Node.js 24
+  - Startup command: `docker compose up`
+  - Laravel server and Vite dev server start automatically
+- [x] Task 2: Admin Area & User Management
+  - Admin access & permissions: Added `is_admin` flag to users, `EnsureUserIsAdmin` middleware, admin-only routes and UI
+  - Admin section in dashboard: Admin overview page with metrics (total users, admin count, recent signups), "Manage Users" button linking to user list
+  - User management: Paginated user list with search/filter, user detail view with profile information and security flags
+  - Admin actions: Toggle admin status (with last admin protection), edit user name/email, suspend/unsuspend users
+  - User suspension: Added `suspended_at` column, suspend/unsuspend functionality, prevented suspended users from logging in
+  - Security: All admin operations protected with middleware, input validation, error handling
+  - Admin user bootstrap: Created `AdminUserSeeder` with documentation in README
+
 
 ⸻
