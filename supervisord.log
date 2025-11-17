@@ -1,0 +1,36 @@
+2025-11-17 21:07:06,649 INFO Set uid to user 0 succeeded
+2025-11-17 21:07:06,650 INFO supervisord started with pid 1
+2025-11-17 21:07:07,657 INFO spawned: 'laravel-server' with pid 7
+2025-11-17 21:07:07,660 INFO spawned: 'vite' with pid 8
+2025-11-17 21:07:07,691 WARN exited: laravel-server (exit status 255; not expected)
+2025-11-17 21:07:07,862 WARN exited: vite (exit status 127; not expected)
+2025-11-17 21:07:08,870 INFO spawned: 'laravel-server' with pid 20
+2025-11-17 21:07:08,871 INFO spawned: 'vite' with pid 21
+2025-11-17 21:07:09,005 WARN exited: laravel-server (exit status 255; not expected)
+2025-11-17 21:07:09,012 WARN exited: vite (exit status 127; not expected)
+2025-11-17 21:07:11,018 INFO spawned: 'laravel-server' with pid 33
+2025-11-17 21:07:11,019 INFO spawned: 'vite' with pid 34
+2025-11-17 21:07:11,037 WARN exited: laravel-server (exit status 255; not expected)
+2025-11-17 21:07:11,151 WARN exited: vite (exit status 127; not expected)
+2025-11-17 21:07:14,167 INFO spawned: 'laravel-server' with pid 46
+2025-11-17 21:07:14,169 INFO spawned: 'vite' with pid 47
+2025-11-17 21:07:14,186 WARN exited: laravel-server (exit status 255; not expected)
+2025-11-17 21:07:14,302 INFO gave up: laravel-server entered FATAL state, too many start retries too quickly
+2025-11-17 21:07:14,309 WARN exited: vite (exit status 127; not expected)
+2025-11-17 21:07:15,314 INFO gave up: vite entered FATAL state, too many start retries too quickly
+2025-11-17 21:09:50,874 INFO reaped unknown pid 361 (exit status 0)
+2025-11-17 21:11:58,431 WARN received SIGTERM indicating exit request
+2025-11-17 21:11:58,838 INFO Set uid to user 0 succeeded
+2025-11-17 21:11:58,839 INFO supervisord started with pid 1
+2025-11-17 21:11:59,848 INFO spawned: 'laravel-server' with pid 7
+2025-11-17 21:11:59,850 INFO spawned: 'vite' with pid 8
+2025-11-17 21:12:01,471 INFO success: laravel-server entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-11-17 21:12:01,471 INFO success: vite entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-11-17 21:13:31,919 WARN received SIGTERM indicating exit request
+2025-11-17 21:13:31,919 INFO waiting for laravel-server, vite to die
+2025-11-17 21:13:32,756 INFO Set uid to user 0 succeeded
+2025-11-17 21:13:32,758 INFO supervisord started with pid 1
+2025-11-17 21:13:33,770 INFO spawned: 'laravel-server' with pid 7
+2025-11-17 21:13:33,773 INFO spawned: 'vite' with pid 8
+2025-11-17 21:13:35,285 INFO success: laravel-server entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-11-17 21:13:35,285 INFO success: vite entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)

@@ -193,6 +193,23 @@ You must:
 
 ⸻
 
+# Project Tasks / Roadmap
+
+- [x] Task 0: Set up general instructions and guidelines
+- [x] Task 1: Dockerize the application for local development
+  - Services included: PHP 8.4, PostgreSQL 18, Redis 8, Node.js 24
+  - Startup command: `docker compose up`
+  - Laravel server and Vite dev server start automatically
+- [ ] Task 2: Refine Auth & Security (Google, Magic Link, Password/2FA behavior)
+- [ ] Task 3: Implement Teams / Workspaces
+- [ ] Task 4: Implement Billing (team-based subscriptions)
+- [ ] Task 5: Implement Settings area (Account, Security, Workspace, Notifications)
+- [ ] Task 6: Implement Admin panel
+- [ ] Task 7: Implement Activity logging & Notifications
+- [ ] Task 8: Final documentation and cleanup
+
+⸻
+
 Task Management and specs.md Usage
 
 To coordinate work and keep an overview of what is done and what remains, the project must use a single specification file (e.g. specs.md) as a living TODO / roadmap.
@@ -340,10 +357,20 @@ Expectations for Cursor on This Task
         •	Accessed in the browser.
         •	Used for both backend and frontend development.
 	•	specs.md must be updated:
-	    •	Mark “Task 1: Dockerize the application for local development” as completed once everything works.
+	    •	Mark "Task 1: Dockerize the application for local development" as completed once everything works.
         •	Optionally add a short note listing:
             •	Which services are in the stack.
             •	Which command(s) are used to start the environment.
+
+**Status: Completed**
+- Created docker-compose.yml with services: app (PHP 8.4 + Node.js 24), PostgreSQL 18, Redis 8
+- Created Dockerfile with PHP 8.4 CLI, required extensions, and Node.js
+- Created .dockerignore for optimized builds
+- Created .env.example with Docker-compatible defaults (PostgreSQL, Redis)
+- Updated README.md with comprehensive Docker development documentation
+- Setup uses supervisor to automatically start Laravel server and Vite dev server
+- Application accessible at http://localhost:8000, Vite at http://localhost:5173
+- Startup command: `docker compose up`
 
 ⸻
 
