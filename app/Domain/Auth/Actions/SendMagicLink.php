@@ -17,10 +17,8 @@ class SendMagicLink
      */
     public function execute(string $email): void
     {
-        // Find user by email or pending_email
-        $user = User::where('email', $email)
-            ->orWhere('pending_email', $email)
-            ->first();
+        // Find user by email
+        $user = User::where('email', $email)->first();
         
         if (! $user) {
             $user = User::create([
@@ -37,8 +35,6 @@ class SendMagicLink
             return;
         }
 
-        // Use the active email (not pending) for magic link
-        // This allows users to log in with their current email even if they have a pending change
         $activeEmail = $user->email;
 
         // Generate magic link token

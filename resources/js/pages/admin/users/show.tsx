@@ -47,7 +47,6 @@ const breadcrumbs = (userId: number): BreadcrumbItem[] => [
 export default function AdminUsersShow({ user, success, error }: AdminUsersShowProps) {
     const { data, setData, patch, processing, errors, recentlySuccessful } = useForm({
         name: user.name,
-        email: user.email,
         is_admin: user.is_admin,
     });
 
@@ -230,18 +229,6 @@ export default function AdminUsersShow({ user, success, error }: AdminUsersShowP
                                         required
                                     />
                                     <InputError message={errors.name} />
-                                </div>
-
-                                <div className="grid gap-2">
-                                    <Label htmlFor="email">Email</Label>
-                                    <Input
-                                        id="email"
-                                        type="email"
-                                        value={data.email}
-                                        onChange={(e) => setData('email', e.target.value)}
-                                        required
-                                    />
-                                    <InputError message={errors.email} />
                                 </div>
 
                                 <div className="flex items-center justify-between rounded-lg border p-4">

@@ -903,10 +903,8 @@ Since there are no other entities yet, the Admin area must implement User manage
   - Email.
   - If implemented, ensure:
   - Changes obey validation rules.
-  - Email changes respect verification rules (if needed).
-  - If there is any conflict with future “self-service” settings or email verification flows, the system should:
+  - If there is any conflict with future "self-service" settings or email verification flows, the system should:
   - Prefer consistency and safety.
-  - Potentially restrict email changes to user-side only and keep admin editing to name and flags.
 	3.	User status / deactivation (optional)
   - If the project decides to support a “deactivated” or “banned” state (e.g. is_active flag), the Admin area should:
   - Allow toggling that status.
@@ -1242,18 +1240,5 @@ All error conditions must be handled gracefully with user-friendly messages.
   - Settings: Removed Password and Two-Factor Auth from Settings navigation and routes
   - Security: Suspended users blocked from both auth methods, rate limiting for magic link requests, proper error handling
   - Documentation: Updated README with Google OAuth setup instructions and authentication overview
-  - Email Change Security (Pending Email Pattern): Implemented secure email change flow with dual verification
-    - Database: Added `pending_email`, `pending_email_verification_token`, and `pending_email_verification_sent_at` fields to users table
-    - User Model: Added helper methods `hasPendingEmailChange()` and `isPendingEmailVerificationExpired()`
-    - Email Change Flow: When user changes email in settings, system stores pending email and sends verification to new address and notification to old address
-    - Verification: New email must verify via signed URL (24-hour expiration), old email receives cancel link for security
-    - Actions: Created `VerifyEmailChange` and `CancelEmailChange` actions for secure email change handling
-    - Profile Controller: Updated to handle email change logic, verification, cancellation, and resend functionality
-    - Routes: Added `/settings/email/verify`, `/settings/email/cancel`, and `/settings/email/resend` routes
-    - Email Templates: Created `verify-email-change.blade.php` and `email-change-notification.blade.php` templates
-    - Authentication Integration: Updated `ResolveUserFromGoogle` to check `pending_email` and auto-complete email change if Google email matches
-    - Magic Link Integration: Updated `SendMagicLink` to handle pending emails by sending links to active email address
-    - Frontend: Profile settings page shows pending email status, disables email input during pending change, provides resend verification button
-    - Security Features: Dual verification (new email + old email notification), 24-hour expiration, signed URLs, rate limiting on resend (5 minutes), magic link token invalidation on email change, prevents duplicate accounts during transition
 
 ---

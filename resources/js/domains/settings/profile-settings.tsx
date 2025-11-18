@@ -24,7 +24,7 @@ export default function ProfileSettings({
             <div className="space-y-6">
                 <HeadingSmall
                     title="Profile information"
-                    description="Update your name and email address"
+                    description="Update your name"
                 />
 
                 <Form
@@ -52,26 +52,6 @@ export default function ProfileSettings({
                                 <InputError
                                     className="mt-2"
                                     message={errors.name}
-                                />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
-
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    className="mt-1 block w-full"
-                                    defaultValue={auth.user.email}
-                                    name="email"
-                                    required
-                                    autoComplete="username"
-                                    placeholder="Email address"
-                                />
-
-                                <InputError
-                                    className="mt-2"
-                                    message={errors.email}
                                 />
                             </div>
 

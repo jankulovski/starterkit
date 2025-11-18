@@ -27,6 +27,24 @@ const settingsNav = [
     { id: 'appearance' as SettingsSection, name: 'Appearance', icon: Paintbrush },
 ];
 
+const SETTINGS_SIDEBAR_COOKIE_NAME = 'settings_sidebar_state';
+const SETTINGS_SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
+
+// Helper function to get cookie value
+function getCookie(name: string): string | null {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) {
+        return parts.pop()?.split(';').shift() || null;
+    }
+    return null;
+}
+
+// Helper function to set cookie
+function setCookie(name: string, value: string, maxAge: number): void {
+    document.cookie = `${name}=${value}; path=/; max-age=${maxAge}`;
+}
+
 interface SettingsDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -44,7 +62,19 @@ export function SettingsDialog({
 }: SettingsDialogProps) {
     const [activeSection, setActiveSection] =
         React.useState<SettingsSection>(defaultSection);
-    const [sidebarOpen, setSidebarOpen] = React.useState(false);
+    
+    // Initialize sidebar state from cookie, with defaults: open on desktop, closed on mobile
+    const [sidebarOpen, setSidebarOpen] = React.useState(() => {
+        const savedState = getCookie(SETTINGS_SIDEBAR_COOKIE_NAME);
+        if (savedState !== null) {
+            return savedState === 'true';
+        }
+        // Default: open on desktop (>= 768px), closed on mobile (< 768px)
+        if (typeof window !== 'undefined') {
+            return window.innerWidth >= 768;
+        }
+        return true; // SSR fallback: default to open
+    });
 
     React.useEffect(() => {
         if (open && defaultSection) {
@@ -52,12 +82,14 @@ export function SettingsDialog({
         }
     }, [open, defaultSection]);
 
-    // Reset sidebar state when dialog closes
+    // Save sidebar state to cookie when it changes
     React.useEffect(() => {
-        if (!open) {
-            setSidebarOpen(false);
-        }
-    }, [open]);
+        setCookie(
+            SETTINGS_SIDEBAR_COOKIE_NAME,
+            sidebarOpen.toString(),
+            SETTINGS_SIDEBAR_COOKIE_MAX_AGE,
+        );
+    }, [sidebarOpen]);
 
     const currentSectionName = settingsNav.find(
         (item) => item.id === activeSection,

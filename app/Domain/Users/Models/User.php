@@ -24,9 +24,6 @@ class User extends Authenticatable
         'password',
         'is_admin',
         'suspended_at',
-        'pending_email',
-        'pending_email_verification_token',
-        'pending_email_verification_sent_at',
     ];
 
     /**
@@ -54,7 +51,6 @@ class User extends Authenticatable
             'two_factor_confirmed_at' => 'datetime',
             'is_admin' => 'boolean',
             'suspended_at' => 'datetime',
-            'pending_email_verification_sent_at' => 'datetime',
         ];
     }
 
@@ -72,26 +68,6 @@ class User extends Authenticatable
     public function isSuspended(): bool
     {
         return ! is_null($this->suspended_at);
-    }
-
-    /**
-     * Check if user has a pending email change.
-     */
-    public function hasPendingEmailChange(): bool
-    {
-        return ! is_null($this->pending_email);
-    }
-
-    /**
-     * Check if pending email verification has expired (24 hours).
-     */
-    public function isPendingEmailVerificationExpired(): bool
-    {
-        if (! $this->pending_email_verification_sent_at) {
-            return false;
-        }
-
-        return $this->pending_email_verification_sent_at->addHours(24)->isPast();
     }
 }
 
