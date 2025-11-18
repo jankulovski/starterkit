@@ -6,8 +6,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { UserInfo } from '@/components/user-info';
 import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
+import { useSettingsDialog } from '@/hooks/use-settings-dialog';
 import { logout } from '@/routes';
-import { edit } from '@/routes/profile';
 import { type User } from '@/types';
 import { Link, router } from '@inertiajs/react';
 import { LogOut, Settings } from 'lucide-react';
@@ -18,10 +18,16 @@ interface UserMenuContentProps {
 
 export function UserMenuContent({ user }: UserMenuContentProps) {
     const cleanup = useMobileNavigation();
+    const { openSettings } = useSettingsDialog();
 
     const handleLogout = () => {
         cleanup();
         router.flushAll();
+    };
+
+    const handleOpenSettings = () => {
+        cleanup();
+        openSettings('profile');
     };
 
     return (
@@ -33,17 +39,9 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-                <DropdownMenuItem asChild>
-                    <Link
-                        className="block w-full"
-                        href={edit()}
-                        as="button"
-                        prefetch
-                        onClick={cleanup}
-                    >
+                <DropdownMenuItem onClick={handleOpenSettings}>
                         <Settings className="mr-2" />
                         Settings
-                    </Link>
                 </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />

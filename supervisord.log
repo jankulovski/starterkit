@@ -89,3 +89,20 @@
 2025-11-18 14:45:30,500 INFO reaped unknown pid 2408 (exit status 0)
 2025-11-18 14:49:55,369 INFO reaped unknown pid 2472 (exit status 0)
 2025-11-18 15:37:33,525 INFO reaped unknown pid 2554 (exit status 0)
+2025-11-18 21:33:59,163 INFO reaped unknown pid 2791 (exit status 0)
+2025-11-18 21:37:48,986 INFO reaped unknown pid 2918 (exit status 0)
+2025-11-18 21:40:00,292 INFO reaped unknown pid 3013 (exit status 0)
+2025-11-18 21:40:19,668 WARN received SIGTERM indicating exit request
+2025-11-18 21:40:19,668 INFO waiting for laravel-server, vite to die
+2025-11-18 21:40:20,946 INFO Set uid to user 0 succeeded
+2025-11-18 21:40:20,948 INFO supervisord started with pid 1
+2025-11-18 21:40:21,959 INFO spawned: 'laravel-server' with pid 7
+2025-11-18 21:40:21,961 INFO spawned: 'vite' with pid 8
+2025-11-18 21:40:23,591 INFO success: laravel-server entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-11-18 21:40:23,591 INFO success: vite entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-11-18 21:46:59,854 INFO reaped unknown pid 87 (exit status 0)
+2025-11-18 21:55:08,827 INFO reaped unknown pid 143 (exit status 0)
+2025-11-18 21:58:44,761 INFO reaped unknown pid 199 (exit status 0)
+2025-11-18 22:03:16,754 INFO reaped unknown pid 256 (exit status 0)
+2025-11-18 22:05:10,369 INFO reaped unknown pid 312 (exit status 0)
+2025-11-18 22:09:51,633 INFO reaped unknown pid 372 (exit status 0)
