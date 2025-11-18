@@ -2,7 +2,7 @@ import ProfileController from '@/actions/App/Domain/Settings/Controllers/Profile
 import { send } from '@/routes/verification';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Transition } from '@headlessui/react';
-import { Form, Head, Link, usePage } from '@inertiajs/react';
+import { Form, Head, Link, router, usePage } from '@inertiajs/react';
 
 import DeleteUser from '@/components/delete-user';
 import HeadingSmall from '@/components/heading-small';
@@ -23,12 +23,24 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 export default function Profile({
     mustVerifyEmail,
+    hasPendingEmailChange,
+    pendingEmail,
     status,
+    error,
 }: {
     mustVerifyEmail: boolean;
+    hasPendingEmailChange?: boolean;
+    pendingEmail?: string | null;
     status?: string;
+    error?: string;
 }) {
     const { auth } = usePage<SharedData>().props;
+
+    const handleResendVerification = () => {
+        router.post('/settings/email/resend', {}, {
+            preserveScroll: true,
+        });
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -40,6 +52,52 @@ export default function Profile({
                         title="Profile information"
                         description="Update your name and email address"
                     />
+
+                    {error && (
+                        <div className="rounded-md bg-red-50 p-4 text-sm text-red-800 dark:bg-red-900/20 dark:text-red-400">
+                            {error}
+                        </div>
+                    )}
+
+                    {status && (
+                        <div className="rounded-md bg-green-50 p-4 text-sm text-green-800 dark:bg-green-900/20 dark:text-green-400">
+                            {status}
+                        </div>
+                    )}
+
+                    {hasPendingEmailChange && pendingEmail && (
+                        <div className="rounded-md bg-yellow-50 p-4 dark:bg-yellow-900/20">
+                            <div className="flex items-start">
+                                <div className="flex-1">
+                                    <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-400">
+                                        Email Change Pending
+                                    </h3>
+                                    <div className="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
+                                        <p>
+                                            A verification email has been sent to{' '}
+                                            <strong>{pendingEmail}</strong>.
+                                        </p>
+                                        <p className="mt-1">
+                                            Please check your inbox and click the
+                                            verification link to complete the
+                                            change. The link will expire in 24
+                                            hours.
+                                        </p>
+                                    </div>
+                                    <div className="mt-4 flex gap-2">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={handleResendVerification}
+                                        >
+                                            Resend Verification Email
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     <Form
                         {...ProfileController.update.form()}
@@ -81,12 +139,22 @@ export default function Profile({
                                         required
                                         autoComplete="username"
                                         placeholder="Email address"
+                                        disabled={hasPendingEmailChange}
                                     />
 
                                     <InputError
                                         className="mt-2"
                                         message={errors.email}
                                     />
+
+                                    {hasPendingEmailChange && (
+                                        <p className="mt-1 text-sm text-muted-foreground">
+                                            You cannot change your email address
+                                            while a change is pending. Please
+                                            verify or cancel the pending change
+                                            first.
+                                        </p>
+                                    )}
                                 </div>
 
                                 {mustVerifyEmail &&
@@ -118,7 +186,7 @@ export default function Profile({
 
                                 <div className="flex items-center gap-4">
                                     <Button
-                                        disabled={processing}
+                                        disabled={processing || hasPendingEmailChange}
                                         data-test="update-profile-button"
                                     >
                                         Save

@@ -939,13 +939,13 @@ The Admin section (already implemented) must remain consistent with the new auth
 
 Requirements:
 	•	Admin user list / detail views:
-	•	Must not assume users have passwords.
-	•	Must not display broken controls related to password or 2FA management.
+		•	Must not assume users have passwords.
+		•	Must not display broken controls related to password or 2FA management.
 	•	It is acceptable for Admin to see:
-	•	Basic auth-related info (e.g., user’s email, when they signed up, maybe whether they’ve ever logged in).
+		•	Basic auth-related info (e.g., user’s email, when they signed up, maybe whether they’ve ever logged in).
 	•	Admin must not:
-	•	Be given 2FA controls (since 2FA is disabled).
-	•	Use password-reset or password-set flows that no longer exist in the UI.
+		•	Be given 2FA controls (since 2FA is disabled).
+		•	Use password-reset or password-set flows that no longer exist in the UI.
 
 If any admin feature related to passwords or 2FA was previously planned or stubbed, it must be either:
 	•	Removed for now, or
@@ -959,14 +959,14 @@ Even without passwords and 2FA, auth must be secure and robust.
 
 The system must correctly handle:
 	•	Invalid Google OAuth callbacks:
-	•	Show a clean error, no partial/broken accounts.
+		•	Show a clean error, no partial/broken accounts.
 	•	Magic Link abuse attempts:
-	•	Rate limiting (Laravel’s built-in throttling can be used where applicable).
-	•	Expired or already-used tokens.
+		•	Rate limiting (Laravel’s built-in throttling can be used where applicable).
+		•	Expired or already-used tokens.
 	•	Email enumeration:
-	•	Magic link flows must be careful not to reveal if an email is registered (depending on the chosen UX).
+		•	Magic link flows must be careful not to reveal if an email is registered (depending on the chosen UX).
 	•	Session handling:
-	•	Ensure users are properly logged out when requested (Logout behavior stays standard).
+		•	Ensure users are properly logged out when requested (Logout behavior stays standard).
 
 All error conditions must be handled gracefully with user-friendly messages.
 
@@ -1000,6 +1000,14 @@ After implementing this Auth behavior:
   - User suspension: Added `suspended_at` column, suspend/unsuspend functionality, prevented suspended users from logging in
   - Security: All admin operations protected with middleware, input validation, error handling
   - Admin user bootstrap: Created `AdminUserSeeder` with documentation in README
+- [x] Task 3: Auth & Security (Google OAuth + Magic Link Only)
+  - Disabled email+password login and 2FA: Removed registration, password reset, and 2FA features from Fortify config
+  - Google OAuth: Implemented Google OAuth login with Laravel Socialite, auto-create users, suspended user prevention
+  - Magic Link: Implemented passwordless magic link authentication with auto-create strategy, 15-minute token expiration, rate limiting
+  - Login UI: Completely redesigned login page with Google OAuth button and Magic Link form, removed password fields and registration links
+  - Settings: Removed Password and Two-Factor Auth from Settings navigation and routes
+  - Security: Suspended users blocked from both auth methods, rate limiting for magic link requests, proper error handling
+  - Documentation: Updated README with Google OAuth setup instructions and authentication overview
 
 
 ⸻

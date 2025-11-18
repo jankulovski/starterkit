@@ -1,8 +1,6 @@
 <?php
 
-use App\Domain\Settings\Controllers\PasswordController;
 use App\Domain\Settings\Controllers\ProfileController;
-use App\Domain\Settings\Controllers\TwoFactorAuthenticationController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -13,16 +11,22 @@ Route::middleware('auth')->group(function () {
     Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('settings/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    Route::get('settings/password', [PasswordController::class, 'edit'])->name('user-password.edit');
+    // Email change verification routes
+    Route::get('settings/email/verify', [ProfileController::class, 'verifyEmailChange'])
+        ->middleware('signed')
+        ->name('settings.email.verify');
 
-    Route::put('settings/password', [PasswordController::class, 'update'])
-        ->middleware('throttle:6,1')
-        ->name('user-password.update');
+    Route::post('settings/email/resend', [ProfileController::class, 'resendEmailVerification'])
+        ->name('settings.email.resend');
+
+    // Password and 2FA routes are disabled - only Google OAuth and Magic Link are used for authentication
 
     Route::get('settings/appearance', function () {
         return Inertia::render('domains/settings/pages/appearance');
     })->name('appearance.edit');
-
-    Route::get('settings/two-factor', [TwoFactorAuthenticationController::class, 'show'])
-        ->name('two-factor.show');
 });
+
+// Cancel email change route (outside auth middleware - works via signed URL)
+Route::get('settings/email/cancel', [ProfileController::class, 'cancelEmailChange'])
+    ->middleware('signed')
+    ->name('settings.email.cancel');

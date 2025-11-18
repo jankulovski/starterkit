@@ -48,7 +48,38 @@ This project includes a Docker-based development environment for easy local setu
    docker compose exec app php artisan migrate
    ```
 
-7. **Create an admin user (optional):**
+7. **Configure Google OAuth (required for authentication):**
+   
+   The application uses Google OAuth and Magic Link for authentication. To enable Google OAuth:
+   
+   a. Go to the [Google Cloud Console](https://console.cloud.google.com/)
+   
+   b. Create a new project or select an existing one
+   
+   c. Enable the Google+ API
+   
+   d. Go to "Credentials" → "Create Credentials" → "OAuth client ID"
+   
+   e. Configure the OAuth consent screen if prompted
+   
+   f. Choose "Web application" as the application type
+   
+   g. Add authorized redirect URIs:
+      - For local development: `http://localhost:8000/auth/google/callback`
+      - For production: `https://yourdomain.com/auth/google/callback`
+   
+   h. Copy the Client ID and Client Secret
+   
+   i. Add them to your `.env` file:
+   ```env
+   GOOGLE_CLIENT_ID=your-client-id-here
+   GOOGLE_CLIENT_SECRET=your-client-secret-here
+   GOOGLE_REDIRECT_URI=http://localhost:8000/auth/google/callback
+   ```
+   
+   **Note:** Magic Link authentication works without Google OAuth configuration, but Google OAuth login will not be available.
+
+8. **Create an admin user (optional):**
    ```bash
    docker compose exec app php artisan db:seed --class=AdminUserSeeder
    ```
@@ -56,6 +87,11 @@ This project includes a Docker-based development environment for easy local setu
    - Email: `admin@example.com`
    - Password: `password`
    - Admin privileges enabled
+   
+   **Note:** Since password-based authentication is disabled, you'll need to log in via Google OAuth or Magic Link. For the seeder user, you can either:
+   - Use Google OAuth with the `admin@example.com` email (if you have access to that Google account)
+   - Request a Magic Link for `admin@example.com`
+   - Manually create a user via tinker and set them as admin
 
    Alternatively, you can manually set a user as admin by updating the `is_admin` column in the database:
    ```bash
@@ -68,7 +104,7 @@ This project includes a Docker-based development environment for easy local setu
    $user->save();
    ```
 
-8. **Access the application:**
+9. **Access the application:**
    - Application: http://localhost:8000
    - Vite dev server: http://localhost:5173 (hot reloading enabled)
 
@@ -112,6 +148,17 @@ docker compose logs -f app
 - **Redis 8** for caching and queues
 
 The Laravel development server and Vite dev server start automatically when you run `docker compose up`.
+
+## Authentication
+
+This application uses two authentication methods:
+
+1. **Google OAuth**: Users can sign in with their Google account
+2. **Magic Link**: Users can request a passwordless login link sent to their email
+
+Both methods automatically create user accounts if they don't exist (auto-create strategy). Users created via Google OAuth have their email automatically verified.
+
+**Note:** Email+password authentication and Two-Factor Authentication (2FA) are disabled in this application.
 
 ## Official Documentation
 
