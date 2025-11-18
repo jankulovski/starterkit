@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Actions\Fortify;
+namespace App\Domain\Auth\Actions;
 
 use Illuminate\Validation\Rules\Password;
 
@@ -16,3 +16,4 @@ trait PasswordValidationRules
         return ['required', 'string', Password::default(), 'confirmed'];
     }
 }
+

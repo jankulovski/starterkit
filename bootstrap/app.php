@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Middleware\EnsureUserIsAdmin;
+use App\Domain\Admin\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;

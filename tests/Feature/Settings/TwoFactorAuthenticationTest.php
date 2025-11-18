@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Settings;
 
-use App\Models\User;
+use App\Domain\Users\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Fortify\Features;
@@ -29,7 +29,7 @@ class TwoFactorAuthenticationTest extends TestCase
             ->withSession(['auth.password_confirmed_at' => time()])
             ->get(route('two-factor.show'))
             ->assertInertia(fn (Assert $page) => $page
-                ->component('settings/two-factor')
+                ->component('domains/settings/pages/two-factor')
                 ->where('twoFactorEnabled', false)
             );
     }
@@ -70,7 +70,7 @@ class TwoFactorAuthenticationTest extends TestCase
             ->get(route('two-factor.show'))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->component('settings/two-factor')
+                ->component('domains/settings/pages/two-factor')
             );
     }
 

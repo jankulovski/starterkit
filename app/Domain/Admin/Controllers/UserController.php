@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Controllers\Admin;
+namespace App\Domain\Admin\Controllers;
 
+use App\Domain\Admin\Requests\UpdateUserRequest;
+use App\Domain\Users\Models\User;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Admin\UpdateUserRequest;
-use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -30,7 +30,7 @@ class UserController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        return Inertia::render('admin/users/index', [
+        return Inertia::render('domains/admin/pages/users/index', [
             'users' => $users->through(function ($user) {
                 return [
                     'id' => $user->id,
@@ -50,7 +50,7 @@ class UserController extends Controller
      */
     public function show(User $user)
     {
-        return Inertia::render('admin/users/show', [
+        return Inertia::render('domains/admin/pages/users/show', [
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,

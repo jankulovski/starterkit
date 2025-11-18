@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Http\Controllers\Admin;
+namespace App\Domain\Admin\Controllers;
 
+use App\Domain\Users\Models\User;
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -20,7 +20,7 @@ class AdminController extends Controller
             ->take(5)
             ->get(['id', 'name', 'email', 'created_at', 'is_admin']);
 
-        return Inertia::render('admin/index', [
+        return Inertia::render('domains/admin/pages/index', [
             'metrics' => [
                 'totalUsers' => $totalUsers,
                 'adminCount' => $adminCount,

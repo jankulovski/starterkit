@@ -63,7 +63,7 @@ This project includes a Docker-based development environment for easy local setu
    ```
    Then run:
    ```php
-   $user = App\Models\User::where('email', 'your@email.com')->first();
+   $user = App\Domain\Users\Models\User::where('email', 'your@email.com')->first();
    $user->is_admin = true;
    $user->save();
    ```

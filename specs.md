@@ -234,6 +234,193 @@ Structure Guidelines for specs.md
 
 ⸻
 
+### Project Structure Rule: Organize Code by Business Domain
+
+To ensure long-term maintainability, clarity, and ease of extension, the entire application must follow a domain-driven folder structure instead of grouping files by technical layer.
+
+This means each “domain” (feature/business unit) contains all of its backend and frontend logic in one place.
+
+⸻
+
+Requirements
+
+1. Use Business Domains as the Primary Folder Structure
+
+The project must be split into domains such as:
+	•	Auth
+	•	Admin
+	•	Users
+	•	Settings
+	•	Teams (future)
+	•	Billing (future)
+	•	Notifications (future)
+	•	Activity (future)
+	•	Product (project-specific logic)
+
+Each domain represents a feature, not a technical layer.
+
+⸻
+
+2. Each Domain Must Be Self-Contained
+
+A domain may contain:
+	•	Backend action logic (controllers, actions, services, etc.)
+	•	Models/entities related to that domain
+	•	Policies/permissions
+	•	Validation rules or Form Requests
+	•	Routes (either grouped inside the domain or referenced from main routes)
+	•	Frontend pages (React/Inertia)
+	•	Frontend components related specifically to that domain
+	•	Tests (if applicable)
+	•	Domain-specific config (if needed)
+
+The guiding rule:
+
+Everything related to one feature must live in its corresponding domain folder.
+
+Do not scatter logic across global Laravel folders like Http/Controllers, Http/Requests, Models, or Pages.
+
+⸻
+
+3. What to Avoid
+	•	Do not organize controllers in /Http/Controllers by technical grouping.
+	•	Do not place all models in /Models if they belong to different domains.
+	•	Do not organize React pages in a flat /Pages folder.
+	•	Do not mix unrelated domain concerns inside the same directory.
+
+⸻
+
+4. Expectations for Cursor
+
+When refactoring or implementing new features:
+	•	Cursor must place all new code inside the correct domain.
+	•	When touching existing code:
+	•	Cursor must move files into their appropriate domains.
+	•	Cursor must update import paths and references accordingly.
+	•	If a piece of code does not clearly belong to any domain:
+	•	Cursor must propose the correct domain or ask for clarification.
+	•	Cursor must avoid introducing new “global” folders unless absolutely necessary.
+
+⸻
+
+5. Allowed Exceptions
+
+Certain files are naturally global and should not be moved into domains:
+	•	Laravel’s bootstrapping files (Service Providers, Kernel, Middleware)
+	•	Exception handling logic
+	•	Very low-level cross-domain utilities (e.g. helpers, support classes)
+	•	Shared UI components that are genuinely global (buttons, shells, layout)
+	•	These belong in a shared Shared/ or Common/ or UI/ folder.
+
+⸻
+
+Example of Domain-Driven Structure
+
+Below is an example illustrating how the same code should be organized under a domain-driven structure.
+
+❌ WRONG — Technical Layer Structure
+```
+app/
+  Models/
+    User.php
+    Team.php
+  Http/
+    Controllers/
+      LoginController.php
+      RegisterController.php
+      UserController.php
+      TeamController.php
+    Requests/
+      UserUpdateRequest.php
+  Services/
+    AuthService.php
+    TeamService.php
+
+resources/js/
+  Pages/
+    Login.jsx
+    Register.jsx
+    Users/
+      Index.jsx
+      Show.jsx
+    Teams/
+      Index.jsx
+```
+
+
+✅ CORRECT — Domain-Driven Structure
+```
+app/
+  Domain/
+    Auth/
+      Actions/
+      Controllers/
+      Services/
+      UserFromGoogleResolver.php
+      MagicLinkHandler.php
+
+    Users/
+      Models/User.php
+      Actions/UpdateUserProfile.php
+      Controllers/UserAdminController.php
+
+    Admin/
+      Controllers/AdminDashboardController.php
+      Actions/ToggleAdminStatus.php
+
+    Settings/
+      Controllers/SettingsController.php
+      Actions/UpdateProfileSettings.php
+
+    Product/
+      Controllers/DashboardController.php
+      Actions/CustomAppLogic.php
+
+resources/js/
+  domains/
+    auth/
+      pages/LoginPage.tsx
+      components/GoogleLoginButton.tsx
+      components/MagicLinkForm.tsx
+
+    admin/
+      pages/AdminDashboard.tsx
+      pages/UsersListPage.tsx
+      pages/UserDetailsPage.tsx
+
+    users/
+      components/UserCard.tsx
+
+    settings/
+      pages/SettingsIndex.tsx
+      pages/ProfileSettingsPage.tsx
+
+    product/
+      pages/HomeDashboard.tsx
+      components/FeatureExample.tsx
+```
+
+Notes
+	•	All Auth-related logic (backend + frontend) lives in the Auth domain.
+	•	All Admin logic lives in the Admin domain.
+	•	All Settings logic lives in the Settings domain.
+	•	All Product-specific logic stays separate under Product.
+	•	There is no scattering of controllers, pages, or models across unrelated directories.
+
+⸻
+
+Summary
+	•	The project must adopt a business-domain–centric architecture.
+	•	Domains group all related code together (backend + frontend).
+	•	Cursor must always:
+	•	Put new code into the correct domain.
+	•	Refactor existing code into proper domains.
+	•	Ask questions if the correct domain is unclear.
+	•	Shared logic belongs in shared folders, not domains.
+	•	This structure creates a cleaner, more maintainable, scalable codebase.
+
+----
+
 ### Task Granularity and Autonomy
 
 - The task list in `specs.md` is a **starting point**, not a strict limit.
@@ -553,6 +740,250 @@ Once the Admin area and user management are implemented:
 - Documentation updated in README.md
 
 ⸻
+
+Task 3: Auth & Security (Google OAuth + Magic Link Only)
+
+This task supersedes previous Auth/2FA specs.
+For now, the app must not use email+password login or 2FA.
+Only Google OAuth and Magic Link are used for authentication.
+
+⸻
+
+3.1 Overall Auth Behavior
+
+The authentication system must:
+	•	Use Laravel Fortify as the core auth backend (as provided by the Laravel React Starter Kit), but:
+	•	Email + password login and registration must be disabled from a user perspective.
+	•	Support exactly two login methods:
+	1.	Login with Google (OAuth).
+	2.	Login with Magic Link (passwordless email link).
+
+General rules:
+	•	All login methods must log into the same User model.
+	•	If a user already exists with a given email:
+	•	Logging in through Google or Magic Link with that email must log into the existing account, not create a duplicate.
+	•	There must be no visible or usable password-based login or registration in the UI.
+	•	Two-Factor Authentication (2FA) must be completely disabled (no UI, no prompts, no requirement).
+
+⸻
+
+3.2 Login Screen UX
+
+The login screen (from the Starter Kit) must be adapted so that:
+	•	It shows only:
+	•	A “Continue with Google” (or similar) button.
+	•	A Magic Link login form (email input + “Send login link” button).
+	•	It must not show:
+	•	Email/password fields.
+	•	Any references to “password”, “forgot password”, or “register with email”.
+
+Design constraints:
+	•	Use the existing auth layout and design of the starter kit.
+	•	Reuse existing form and button styles (shadcn/ui + Tailwind) so it visually fits perfectly.
+	•	Error messages (e.g., “Invalid magic link”, “Login failed”) must:
+	•	Display in the same style as existing validation errors.
+	•	Be clear and user-friendly.
+
+Behavior:
+	•	After a successful login (via Google or Magic Link), the user is redirected to the main dashboard.
+	•	If login fails (invalid token, OAuth error, etc.), the user stays on the login screen with a helpful error.
+
+⸻
+
+3.3 Registration Behavior (No Email+Password Sign-Up)
+
+For now, there should be no explicit email+password registration flow.
+
+Rules:
+	•	No registration form for email/password:
+	•	Hide or remove any “Sign up” / “Register” UI that assumes email+password.
+	•	User creation happens implicitly via:
+	•	First successful Google login.
+	•	First successful Magic Link login (if you choose to auto-create users for unknown emails).
+
+Behavior for new emails:
+	•	For Google:
+	•	If a Google login succeeds and no user exists for that email:
+	•	A new user account is created automatically.
+	•	For Magic Link:
+	•	You must choose and implement one of the two behaviors (and be consistent):
+	•	Option A (auto-create):
+	•	If a magic link is requested for an unknown email:
+	•	Create a new user.
+	•	Send the link.
+	•	Option B (no auto-create):
+	•	If a magic link is requested for an unknown email:
+	•	Show an error (“No account found for this email”).
+	•	Whichever option is used must be clearly documented in the code comments or README.
+
+All visible “Register” links and forms that imply email + password must be hidden/removed.
+
+⸻
+
+3.4 Login With Google (OAuth)
+
+Add Login with Google as a primary authentication method.
+
+Requirements:
+	•	UX:
+	•	The login page must include a “Continue with Google” button.
+	•	Clicking it should start the OAuth flow.
+	•	Behavior:
+	•	User is redirected to Google’s OAuth consent.
+	•	On callback:
+	•	Extract the email address (must be trusted/verified as per Google’s data).
+	•	If a user with that email exists:
+	•	Log them in.
+	•	If not:
+	•	Create a new user with that email (and name if available).
+	•	After completion, redirect user to the dashboard.
+	•	Edge cases:
+	•	If Google doesn’t provide an email or returns an error:
+	•	Do not create an unusable account.
+	•	Show a friendly error and suggest trying again or contacting support.
+
+Interaction with other auth methods:
+	•	If a user previously logged in with Magic Link for foo@example.com, and then logs in with Google for foo@example.com:
+	•	They must be treated as the same account.
+
+⸻
+
+3.5 Magic Link Login (Passwordless)
+
+Implement Magic Link login.
+
+Requirements:
+	•	UX on login page:
+	•	A simple form:
+	•	Input: email address.
+	•	Button: “Send login link” / similar.
+	•	When submitted:
+	•	Show a success state (“If an account exists, we sent a login link”).
+	•	Behavior:
+	•	When a magic link is requested:
+	•	Depending on the chosen strategy:
+	•	Auto-create strategy:
+	•	If user exists:
+	•	Generate a single-use, time-limited token.
+	•	Send a login email with a link.
+	•	If user does not exist:
+	•	Create a new user record.
+	•	Generate token and send login email.
+	•	No auto-create strategy:
+	•	If user exists:
+	•	Generate token and send login email.
+	•	If user does not exist:
+	•	Show an error or a neutral success message but do not create a user.
+	•	When user clicks the magic link:
+	•	Validate token (correct, not expired, not already used).
+	•	If valid:
+	•	Log the user in.
+	•	Mark the token as used.
+	•	Redirect to dashboard.
+	•	If invalid or expired:
+	•	Show a friendly error and link back to login to request a new link.
+	•	Security:
+	•	Tokens must be random, unguessable, single-use, and time-limited.
+	•	Failed or expired token use must not leak which emails are registered.
+
+Interaction with other auth methods:
+	•	Magic link login must respect the “one email = one user” rule.
+	•	It must co-exist cleanly with Google login.
+
+⸻
+
+3.6 2FA and Password Features: Disabled
+
+For this stage, 2FA and password-based features must be fully disabled.
+
+Requirements:
+	•	No 2FA:
+	•	Do not prompt for 2FA after login.
+	•	Do not show 2FA settings pages.
+	•	Do not expose QR codes, recovery codes, or any 2FA flows.
+	•	No password-based login or password settings:
+	•	Do not show “Change Password”, “Set Password”, or “Forgot Password” UI.
+	•	Do not show a “Password” tab in Settings.
+	•	Fortify:
+	•	Under the hood, Fortify’s password and 2FA features can remain installed, but:
+	•	They must be effectively “turned off” for users:
+	•	No visible routes/UI for these behaviors.
+	•	No flows that rely on “current password”.
+
+If any underlying routes remain (for technical reasons), the UI must not expose them, and they must not be reachable in normal user flows.
+
+⸻
+
+3.7 Settings Area Adjustments (Security Pages)
+
+The Settings area must be updated to reflect the new auth model:
+	•	Remove or hide:
+	•	Password settings page.
+	•	Two-Factor Authentication (2FA) settings page.
+	•	Ensure there are no dead links:
+	•	The Settings navigation must not contain entries pointing to disabled pages.
+	•	If there is a “Security” section:
+	•	It can either be temporarily hidden entirely.
+	•	Or kept as a minimal “info only” section explaining that:
+	•	Login is via Google or Magic Link.
+	•	Additional security options may be added later.
+	•	But it must not show non-functional or broken widgets.
+
+Goal: the Settings UI should feel coherent and not suggest features that do not exist.
+
+⸻
+
+3.8 Integration With Admin Area
+
+The Admin section (already implemented) must remain consistent with the new auth behavior.
+
+Requirements:
+	•	Admin user list / detail views:
+	•	Must not assume users have passwords.
+	•	Must not display broken controls related to password or 2FA management.
+	•	It is acceptable for Admin to see:
+	•	Basic auth-related info (e.g., user’s email, when they signed up, maybe whether they’ve ever logged in).
+	•	Admin must not:
+	•	Be given 2FA controls (since 2FA is disabled).
+	•	Use password-reset or password-set flows that no longer exist in the UI.
+
+If any admin feature related to passwords or 2FA was previously planned or stubbed, it must be either:
+	•	Removed for now, or
+	•	Clearly marked as not implemented and not surface in the UI.
+
+⸻
+
+3.9 Security & Edge Cases
+
+Even without passwords and 2FA, auth must be secure and robust.
+
+The system must correctly handle:
+	•	Invalid Google OAuth callbacks:
+	•	Show a clean error, no partial/broken accounts.
+	•	Magic Link abuse attempts:
+	•	Rate limiting (Laravel’s built-in throttling can be used where applicable).
+	•	Expired or already-used tokens.
+	•	Email enumeration:
+	•	Magic link flows must be careful not to reveal if an email is registered (depending on the chosen UX).
+	•	Session handling:
+	•	Ensure users are properly logged out when requested (Logout behavior stays standard).
+
+All error conditions must be handled gracefully with user-friendly messages.
+
+⸻
+
+3.10 Specs & Task List Updates
+
+After implementing this Auth behavior:
+	•	Update specs.md:
+	•	Mark “Task 3: Auth & Security (Google OAuth + Magic Link Only)” as completed ([x]) or update its status to “Done/In Review”.
+	•	Optionally add a brief note, such as:
+	•	“Auth now uses only Google OAuth and Magic Link. Email+password and 2FA are disabled. Login and Settings reflect this.”
+	•	If, during implementation, you discover necessary follow-up tasks (e.g. “track last login timestamp”, “add login history for admin”), you may:
+	•	Add them as new tasks or subtasks in specs.md.
+	•	Leave them as TODO unless required to make the current auth flow coherent.
+
+----
 
 # Project Tasks / Roadmap
 

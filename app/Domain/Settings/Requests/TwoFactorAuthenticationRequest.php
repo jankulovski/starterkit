@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests\Settings;
+namespace App\Domain\Settings\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Laravel\Fortify\Features;
@@ -28,3 +28,4 @@ class TwoFactorAuthenticationRequest extends FormRequest
         return [];
     }
 }
+
