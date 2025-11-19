@@ -1,9 +1,10 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, type Column } from '@/components/data-table';
 import { DataTableFilters, type FilterConfig } from '@/components/data-table-filters';
+import { UserEditDialog } from '@/components/user-edit-dialog';
 import { ArrowLeft } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 
@@ -14,6 +15,12 @@ interface User {
     is_admin: boolean;
     suspended_at: string | null;
     created_at: string;
+}
+
+interface FullUser extends User {
+    email_verified_at: string | null;
+    two_factor_enabled?: boolean;
+    updated_at: string;
 }
 
 interface PaginatedUsers {
@@ -40,6 +47,7 @@ interface AdminUsersIndexProps {
         user: number;
         suspended: number;
     };
+    user?: FullUser; // Only used for partial requests from dialog
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -61,6 +69,29 @@ export default function AdminUsersIndex({
     const [searchValue, setSearchValue] = useState(initialFilters.search || '');
     const [selectedStatus, setSelectedStatus] = useState<string[]>(initialFilters.status || []);
     const [selectedRows, setSelectedRows] = useState<Set<string | number>>(new Set());
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+    const [userData, setUserData] = useState<FullUser | null>(null);
+    
+    const { props } = usePage<AdminUsersIndexProps>();
+
+    // Update userData when props.user changes (from Inertia response)
+    useEffect(() => {
+        if (props.user) {
+            setUserData(props.user);
+        }
+    }, [props.user]);
+
+    // Fetch user data when dialog opens
+    useEffect(() => {
+        if (dialogOpen && selectedUserId && (!userData || userData.id !== selectedUserId)) {
+            router.get(`/admin/users/${selectedUserId}`, {}, {
+                preserveState: true,
+                preserveScroll: true,
+                only: ['user'],
+            });
+        }
+    }, [dialogOpen, selectedUserId]);
 
     // Debounce search
     useEffect(() => {
@@ -127,7 +158,17 @@ export default function AdminUsersIndex({
     const handleRowAction = (action: string, row: User) => {
         switch (action) {
             case 'view':
-                router.visit(`/admin/users/${row.id}`);
+                setSelectedUserId(row.id);
+                setDialogOpen(true);
+                // If we don't have full user data, fetch it
+                if (!userData || userData.id !== row.id) {
+                    setUserData(null);
+                    router.get(`/admin/users/${row.id}`, {}, {
+                        preserveState: true,
+                        preserveScroll: true,
+                        only: ['user'],
+                    });
+                }
                 break;
             case 'suspend':
                 router.post(`/admin/users/${row.id}/suspend`, {}, {
@@ -146,6 +187,18 @@ export default function AdminUsersIndex({
                 });
                 break;
         }
+    };
+
+    const handleDialogClose = (open: boolean) => {
+        setDialogOpen(open);
+        if (!open) {
+            setSelectedUserId(null);
+            setUserData(null);
+        }
+    };
+
+    const handleDialogSuccess = () => {
+        router.reload({ only: ['users', 'user'] });
     };
 
     const getActionMenuItems = (user: User) => {
@@ -289,6 +342,13 @@ export default function AdminUsersIndex({
                         links: users.links,
                         onPageChange: handlePageChange,
                     }}
+                />
+
+                <UserEditDialog
+                    open={dialogOpen}
+                    onOpenChange={handleDialogClose}
+                    user={userData}
+                    onSuccess={handleDialogSuccess}
                 />
             </div>
         </AppLayout>
