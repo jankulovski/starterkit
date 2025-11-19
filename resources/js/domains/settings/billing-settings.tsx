@@ -9,7 +9,6 @@ import { useForm } from '@inertiajs/react';
 import {
     CreditCard,
     Check,
-    ArrowRight,
     Coins,
     ExternalLink,
     Calendar,
@@ -88,7 +87,7 @@ export default function BillingSettings({
     const isCanceled = subscription.status === 'canceled';
 
     return (
-        <div className="space-y-12">
+        <div className="space-y-6">
             {/* Current Plan & Credits Overview */}
             <div className="space-y-6">
                 <HeadingSmall
