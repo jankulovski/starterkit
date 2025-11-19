@@ -7,6 +7,7 @@ import { DataTableFilters, type FilterConfig } from '@/components/data-table-fil
 import { UserEditDialog } from '@/components/user-edit-dialog';
 import { ArrowLeft } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
 
 interface User {
     id: number;
@@ -85,11 +86,14 @@ export default function AdminUsersIndex({
     // Fetch user data when dialog opens
     useEffect(() => {
         if (dialogOpen && selectedUserId && (!userData || userData.id !== selectedUserId)) {
-            router.get(`/admin/users/${selectedUserId}`, {}, {
-                preserveState: true,
-                preserveScroll: true,
-                only: ['user'],
-            });
+            axios.get(`/admin/users/${selectedUserId}`)
+                .then(response => {
+                    setUserData(response.data);
+                })
+                .catch(error => {
+                    console.error('Failed to fetch user details:', error);
+                    // Close dialog if fetch fails? Or show error
+                });
         }
     }, [dialogOpen, selectedUserId]);
 
@@ -159,16 +163,11 @@ export default function AdminUsersIndex({
         switch (action) {
             case 'view':
                 setSelectedUserId(row.id);
-                setDialogOpen(true);
-                // If we don't have full user data, fetch it
-                if (!userData || userData.id !== row.id) {
+                // Clear current user data if it's different to show loading state or empty
+                if (userData && userData.id !== row.id) {
                     setUserData(null);
-                    router.get(`/admin/users/${row.id}`, {}, {
-                        preserveState: true,
-                        preserveScroll: true,
-                        only: ['user'],
-                    });
                 }
+                setDialogOpen(true);
                 break;
             case 'suspend':
                 router.post(`/admin/users/${row.id}/suspend`, {}, {
@@ -198,7 +197,16 @@ export default function AdminUsersIndex({
     };
 
     const handleDialogSuccess = () => {
-        router.reload({ only: ['users', 'user'] });
+        // Reload table data
+        router.reload({ only: ['users'] });
+        
+        // Refetch user data to update the dialog (name, status, etc.)
+        if (selectedUserId) {
+            axios.get(`/admin/users/${selectedUserId}`)
+                .then(response => {
+                    setUserData(response.data);
+                });
+        }
     };
 
     const getActionMenuItems = (user: User) => {

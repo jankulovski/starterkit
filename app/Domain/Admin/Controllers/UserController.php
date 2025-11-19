@@ -90,38 +90,25 @@ class UserController extends Controller
     public function show(Request $request, User $user)
     {
         $userData = [
-            'id' => $user->id,
-            'name' => $user->name,
-            'email' => $user->email,
-            'is_admin' => $user->is_admin,
-            'suspended_at' => $user->suspended_at?->toISOString(),
-            'email_verified_at' => $user->email_verified_at?->toISOString(),
-            'two_factor_enabled' => ! is_null($user->two_factor_confirmed_at),
-            'created_at' => $user->created_at->toISOString(),
-            'updated_at' => $user->updated_at->toISOString(),
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'is_admin' => $user->is_admin,
+                'suspended_at' => $user->suspended_at?->toISOString(),
+                'email_verified_at' => $user->email_verified_at?->toISOString(),
+                'two_factor_enabled' => ! is_null($user->two_factor_confirmed_at),
+                'created_at' => $user->created_at->toISOString(),
+                'updated_at' => $user->updated_at->toISOString(),
         ];
 
-        // Only allow partial requests (for dialog functionality)
-        // Check if it's a partial request by checking the partial component header or referrer
-        $partialComponent = $request->header('X-Inertia-Partial-Component');
-        $referer = $request->header('Referer');
-        $isPartialRequest = false;
-        
-        if ($partialComponent && str_contains($partialComponent, 'users/index')) {
-            $isPartialRequest = true;
-        } elseif ($referer) {
-            // Check if referrer is the index page (not a specific user page)
-            $refererPath = parse_url($referer, PHP_URL_PATH);
-            $isPartialRequest = $refererPath === '/admin/users' || $refererPath === '/admin/users/';
-        }
-        
-        if ($isPartialRequest && $request->header('X-Inertia')) {
-            return Inertia::render('domains/admin/pages/users/index', [
-                'user' => $userData,
-            ]);
+        // For JSON requests (e.g. from axios), return user data directly
+        // Ensure it's not an Inertia request, as Inertia also sends application/json Accept header
+        if ($request->wantsJson() && !$request->header('X-Inertia')) {
+            return response()->json($userData);
         }
 
-        // For direct URL visits, redirect to index page
+        // For direct URL visits or Inertia visits to this route, redirect to index page
+        // The user edit dialog is handled via the index page + axios requests
         return redirect()->route('admin.users.index');
     }
 

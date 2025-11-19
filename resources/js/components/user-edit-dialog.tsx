@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { router, useForm } from '@inertiajs/react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,19 +13,15 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Shield, Mail, Calendar, CheckCircle2, XCircle, Ban, CheckCircle } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { UserInfo } from '@/components/user-info';
+import { type User as UserType } from '@/types';
+import { Mail, Calendar, CheckCircle2, XCircle, Ban, CheckCircle } from 'lucide-react';
 import { Transition } from '@headlessui/react';
 
-interface User {
-    id: number;
-    name: string;
-    email: string;
+interface User extends UserType {
     is_admin: boolean;
     suspended_at: string | null;
-    email_verified_at: string | null;
-    two_factor_enabled?: boolean;
-    created_at: string;
-    updated_at: string;
 }
 
 interface UserEditDialogProps {
@@ -96,209 +91,142 @@ export function UserEditDialog({ open, onOpenChange, user, onSuccess }: UserEdit
         return null;
     }
 
+    // Use the user prop which will update after successful save
+    const displayUser = user;
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>User Details</DialogTitle>
-                    <DialogDescription>
-                        View and manage user information
-                    </DialogDescription>
+                    <div className="flex items-center gap-3">
+                        <UserInfo user={displayUser} showEmail={true} />
+                        <div className="flex items-center gap-2 ml-auto">
+                            {user.is_admin && (
+                                <Badge variant="default">Admin</Badge>
+                            )}
+                            {user.suspended_at ? (
+                                <Badge variant="destructive">Suspended</Badge>
+                            ) : (
+                                <Badge variant="secondary">Active</Badge>
+                            )}
+                        </div>
+                    </div>
                 </DialogHeader>
 
-                <div className="grid gap-6 md:grid-cols-2">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>User Information</CardTitle>
-                            <CardDescription>
-                                Basic account information
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="flex items-center gap-3">
-                                <Mail className="h-4 w-4 text-muted-foreground" />
-                                <div>
-                                    <p className="text-sm font-medium">Email</p>
-                                    <p className="text-sm text-muted-foreground">
-                                        {user.email}
-                                    </p>
+                <div className="space-y-6">
+                    {/* User Information */}
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-semibold text-foreground">Account Information</h3>
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <div className="space-y-1">
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    <Mail className="h-3.5 w-3.5" />
+                                    <span>Email</span>
                                 </div>
-                            </div>
-
-                            <div className="flex items-center gap-3">
-                                <Calendar className="h-4 w-4 text-muted-foreground" />
-                                <div>
-                                    <p className="text-sm font-medium">Created</p>
-                                    <p className="text-sm text-muted-foreground">
-                                        {new Date(user.created_at).toLocaleString()}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-3">
-                                {user.email_verified_at ? (
-                                    <>
-                                        <CheckCircle2 className="h-4 w-4 text-green-600" />
-                                        <div>
-                                            <p className="text-sm font-medium">Email Status</p>
-                                            <p className="text-sm text-muted-foreground">
-                                                Verified
-                                            </p>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <XCircle className="h-4 w-4 text-red-600" />
-                                        <div>
-                                            <p className="text-sm font-medium">Email Status</p>
-                                            <p className="text-sm text-muted-foreground">
-                                                Unverified
-                                            </p>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-
-                            <div className="flex items-center gap-3">
-                                {user.two_factor_enabled ? (
-                                    <>
-                                        <CheckCircle2 className="h-4 w-4 text-green-600" />
-                                        <div>
-                                            <p className="text-sm font-medium">2FA Status</p>
-                                            <p className="text-sm text-muted-foreground">
-                                                Enabled
-                                            </p>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <XCircle className="h-4 w-4 text-muted-foreground" />
-                                        <div>
-                                            <p className="text-sm font-medium">2FA Status</p>
-                                            <p className="text-sm text-muted-foreground">
-                                                Disabled
-                                            </p>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-
-                            <div className="flex items-center gap-3">
-                                <Shield className="h-4 w-4 text-muted-foreground" />
-                                <div>
-                                    <p className="text-sm font-medium">Role</p>
-                                    {user.is_admin ? (
-                                        <Badge variant="default" className="mt-1">
-                                            Administrator
-                                        </Badge>
+                                <p className="text-sm font-medium">{user.email}</p>
+                                <div className="flex items-center gap-1.5 mt-1">
+                                    {user.email_verified_at ? (
+                                        <>
+                                            <CheckCircle2 className="h-3 w-3 text-green-600" />
+                                            <span className="text-xs text-muted-foreground">Verified</span>
+                                        </>
                                     ) : (
-                                        <Badge variant="secondary" className="mt-1">
-                                            User
-                                        </Badge>
+                                        <>
+                                            <XCircle className="h-3 w-3 text-muted-foreground" />
+                                            <span className="text-xs text-muted-foreground">Unverified</span>
+                                        </>
                                     )}
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-3">
-                                {user.suspended_at ? (
-                                    <>
-                                        <Ban className="h-4 w-4 text-red-600" />
-                                        <div>
-                                            <p className="text-sm font-medium">Account Status</p>
-                                            <Badge variant="destructive" className="mt-1">
-                                                Suspended
-                                            </Badge>
-                                            <p className="text-xs text-muted-foreground mt-1">
-                                                Suspended on {new Date(user.suspended_at).toLocaleDateString()}
-                                            </p>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <CheckCircle className="h-4 w-4 text-green-600" />
-                                        <div>
-                                            <p className="text-sm font-medium">Account Status</p>
-                                            <Badge variant="secondary" className="mt-1">
-                                                Active
-                                            </Badge>
-                                        </div>
-                                    </>
-                                )}
+                            <div className="space-y-1">
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    <Calendar className="h-3.5 w-3.5" />
+                                    <span>Created</span>
+                                </div>
+                                <p className="text-sm font-medium">
+                                    {new Date(user.created_at).toLocaleDateString()}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                    {new Date(user.created_at).toLocaleTimeString()}
+                                </p>
                             </div>
-                        </CardContent>
-                    </Card>
 
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Edit User</CardTitle>
-                            <CardDescription>
-                                Update user information and permissions
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <form onSubmit={submit} className="space-y-6">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="name">Name</Label>
-                                    <Input
-                                        id="name"
-                                        value={data.name}
-                                        onChange={(e) => setData('name', e.target.value)}
-                                        required
-                                    />
-                                    <InputError message={errors.name} />
-                                </div>
-
-                                <div className="flex items-center justify-between rounded-lg border p-4">
-                                    <div className="space-y-0.5">
-                                        <Label htmlFor="is_admin" className="text-base">
-                                            Administrator
-                                        </Label>
-                                        <p className="text-sm text-muted-foreground">
-                                            Grant admin privileges to this user
-                                        </p>
+                            {user.suspended_at && (
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                        <Ban className="h-3.5 w-3.5" />
+                                        <span>Suspended</span>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <Checkbox
-                                            id="is_admin"
-                                            checked={data.is_admin}
-                                            onCheckedChange={(checked) => setData('is_admin', checked === true)}
-                                        />
-                                    </div>
+                                    <p className="text-sm font-medium">
+                                        {new Date(user.suspended_at).toLocaleDateString()}
+                                    </p>
                                 </div>
-                                <InputError message={errors.is_admin} />
+                            )}
+                        </div>
+                    </div>
 
-                                <div className="flex items-center gap-4">
-                                    <Button type="submit" disabled={processing}>
-                                        Save Changes
-                                    </Button>
+                    <Separator />
 
-                                    <Transition
-                                        show={recentlySuccessful}
-                                        enter="transition ease-in-out"
-                                        enterFrom="opacity-0"
-                                        leave="transition ease-in-out"
-                                        leaveTo="opacity-0"
-                                    >
-                                        <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                                            Saved
-                                        </p>
-                                    </Transition>
+                    {/* Edit Form */}
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-semibold text-foreground">Edit User</h3>
+                        <form onSubmit={submit} className="space-y-5">
+                            <div className="space-y-2">
+                                <Label htmlFor="name">Name</Label>
+                                <Input
+                                    id="name"
+                                    value={data.name}
+                                    onChange={(e) => setData('name', e.target.value)}
+                                    required
+                                    className="max-w-md"
+                                />
+                                <InputError message={errors.name} />
+                            </div>
+
+                            <div className="flex items-start justify-between rounded-lg border p-4">
+                                <div className="space-y-1">
+                                    <Label htmlFor="is_admin" className="text-sm font-medium">
+                                        Administrator
+                                    </Label>
+                                    <p className="text-xs text-muted-foreground">
+                                        Grant admin privileges to this user
+                                    </p>
                                 </div>
-                            </form>
-                        </CardContent>
-                    </Card>
-                </div>
+                                <Checkbox
+                                    id="is_admin"
+                                    checked={data.is_admin}
+                                    onCheckedChange={(checked) => setData('is_admin', checked === true)}
+                                />
+                            </div>
+                            <InputError message={errors.is_admin} />
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Account Actions</CardTitle>
-                        <CardDescription>
-                            Suspend or unsuspend this user account
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
+                            <div className="flex items-center gap-3 pt-2">
+                                <Button type="submit" disabled={processing}>
+                                    Save Changes
+                                </Button>
+                                <Transition
+                                    show={recentlySuccessful}
+                                    enter="transition ease-in-out"
+                                    enterFrom="opacity-0"
+                                    leave="transition ease-in-out"
+                                    leaveTo="opacity-0"
+                                >
+                                    <p className="text-sm text-muted-foreground">
+                                        Saved
+                                    </p>
+                                </Transition>
+                            </div>
+                        </form>
+                    </div>
+
+                    <Separator />
+
+                    {/* Account Actions */}
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-semibold text-foreground">Account Actions</h3>
                         {user.suspended_at ? (
-                            <div className="space-y-4">
+                            <div className="space-y-3">
                                 <p className="text-sm text-muted-foreground">
                                     This user account is currently suspended and cannot log in.
                                 </p>
@@ -311,7 +239,7 @@ export function UserEditDialog({ open, onOpenChange, user, onSuccess }: UserEdit
                                 </Button>
                             </div>
                         ) : (
-                            <div className="space-y-4">
+                            <div className="space-y-3">
                                 <p className="text-sm text-muted-foreground">
                                     Suspending a user will prevent them from logging in to the application.
                                 </p>
@@ -324,8 +252,8 @@ export function UserEditDialog({ open, onOpenChange, user, onSuccess }: UserEdit
                                 </Button>
                             </div>
                         )}
-                    </CardContent>
-                </Card>
+                    </div>
+                </div>
             </DialogContent>
         </Dialog>
     );
