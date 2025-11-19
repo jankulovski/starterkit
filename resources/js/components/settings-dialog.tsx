@@ -180,7 +180,7 @@ export function SettingsDialog({
                                 </Breadcrumb>
                             </div>
                         </header>
-                        <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4 pt-0">
+                        <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-6">
                             <div className="max-w-xl">
                                 {activeSection === 'profile' && (
                                     <ProfileSettings
