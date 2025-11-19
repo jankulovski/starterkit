@@ -38,7 +38,7 @@ class ProfileController extends Controller
         $user->fill($validated);
         $user->save();
 
-        return to_route('profile.edit');
+        return back();
     }
 
     /**

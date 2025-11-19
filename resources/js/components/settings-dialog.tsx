@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Paintbrush, User, PanelLeft } from 'lucide-react';
+import { usePage } from '@inertiajs/react';
 
 import {
     Breadcrumb,
@@ -17,6 +18,8 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { UserInfo } from '@/components/user-info';
+import { type SharedData } from '@/types';
 import ProfileSettings from '@/domains/settings/profile-settings';
 import AppearanceSettings from '@/domains/settings/appearance-settings';
 
@@ -60,6 +63,7 @@ export function SettingsDialog({
     mustVerifyEmail = false,
     status,
 }: SettingsDialogProps) {
+    const { auth } = usePage<SharedData>().props;
     const [activeSection, setActiveSection] =
         React.useState<SettingsSection>(defaultSection);
     
@@ -111,6 +115,15 @@ export function SettingsDialog({
                         )}
                     >
                         <div className="flex h-full w-full flex-col p-2">
+                            {/* User Info at the top */}
+                            {auth.user && (
+                                <div className="mb-4 flex items-center gap-2 px-1 py-2">
+                                    <UserInfo
+                                        user={auth.user}
+                                        showEmail={sidebarOpen}
+                                    />
+                                </div>
+                            )}
                             <nav className="space-y-1">
                                 {settingsNav.map((item) => (
                                     <button

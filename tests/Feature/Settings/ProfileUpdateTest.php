@@ -10,30 +10,20 @@ class ProfileUpdateTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_profile_page_is_displayed()
-    {
-        $user = User::factory()->create();
-
-        $response = $this
-            ->actingAs($user)
-            ->get(route('profile.edit'));
-
-        $response->assertOk();
-    }
-
     public function test_profile_information_can_be_updated()
     {
         $user = User::factory()->create();
 
         $response = $this
             ->actingAs($user)
+            ->from(route('dashboard'))
             ->patch(route('profile.update'), [
                 'name' => 'Test User',
             ]);
 
         $response
             ->assertSessionHasNoErrors()
-            ->assertRedirect(route('profile.edit'));
+            ->assertRedirect(route('dashboard'));
 
         $user->refresh();
 
@@ -64,14 +54,14 @@ class ProfileUpdateTest extends TestCase
 
         $response = $this
             ->actingAs($user)
-            ->from(route('profile.edit'))
+            ->from(route('dashboard'))
             ->delete(route('profile.destroy'), [
                 'password' => 'wrong-password',
             ]);
 
         $response
             ->assertSessionHasErrors('password')
-            ->assertRedirect(route('profile.edit'));
+            ->assertRedirect(route('dashboard'));
 
         $this->assertNotNull($user->fresh());
     }
