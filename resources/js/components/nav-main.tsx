@@ -18,16 +18,24 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                 {items.map((item) => (
                     <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton
-                            asChild
-                            isActive={page.url.startsWith(
+                            asChild={!item.onClick}
+                            isActive={!item.onClick && page.url.startsWith(
                                 resolveUrl(item.href),
                             )}
                             tooltip={{ children: item.title }}
+                            onClick={item.onClick}
                         >
-                            <Link href={item.href} prefetch>
-                                {item.icon && <item.icon />}
-                                <span>{item.title}</span>
-                            </Link>
+                            {item.onClick ? (
+                                <button className="flex w-full items-center gap-2">
+                                    {item.icon && <item.icon />}
+                                    <span>{item.title}</span>
+                                </button>
+                            ) : (
+                                <Link href={item.href} prefetch>
+                                    {item.icon && <item.icon />}
+                                    <span>{item.title}</span>
+                                </Link>
+                            )}
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 ))}

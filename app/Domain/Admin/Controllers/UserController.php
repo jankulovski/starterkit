@@ -89,6 +89,13 @@ class UserController extends Controller
      */
     public function show(Request $request, User $user)
     {
+        $subscription = null;
+        $nextBillingDate = null;
+        if ($user->subscribed()) {
+            $subscription = $user->subscription();
+            $nextBillingDate = $subscription->asStripeSubscription()->current_period_end ?? null;
+        }
+
         $userData = [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -99,6 +106,14 @@ class UserController extends Controller
                 'two_factor_enabled' => ! is_null($user->two_factor_confirmed_at),
                 'created_at' => $user->created_at->toISOString(),
                 'updated_at' => $user->updated_at->toISOString(),
+                'billing' => [
+                    'credits_balance' => $user->creditsBalance(),
+                    'current_plan' => $user->currentPlan(),
+                    'subscription_status' => $user->subscriptionStatus(),
+                    'stripe_customer_id' => $user->stripe_id,
+                    'next_billing_date' => $nextBillingDate ? date('c', $nextBillingDate) : null,
+                    'stripe_subscription_id' => $subscription?->stripe_id,
+                ],
         ];
 
         // For JSON requests (e.g. from axios), return user data directly

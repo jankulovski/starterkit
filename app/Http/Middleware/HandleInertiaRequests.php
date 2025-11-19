@@ -55,6 +55,11 @@ class HandleInertiaRequests extends Middleware
                     'is_admin' => $user->is_admin ?? false,
                     'created_at' => $user->created_at->toISOString(),
                     'updated_at' => $user->updated_at->toISOString(),
+                    'billing' => [
+                        'credits_balance' => $user->creditsBalance(),
+                        'current_plan' => $user->currentPlan(),
+                        'subscription_status' => $user->subscriptionStatus(),
+                    ],
                 ] : null,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',

@@ -6,6 +6,7 @@ You are working on a Laravel + React + Inertia project based on the official Lar
   - Reuses as much as possible
   - Implements features end-to-end (backend + frontend + admin + UX)
   - Keeps the codebase coherent and maintainable
+  - The app lives in docker, therefore if you need to run composer or npm commands you have to execute them via docker exec.
 
 ---
 
@@ -1216,6 +1217,336 @@ All error conditions must be handled gracefully with user-friendly messages.
   - Add them as new tasks or subtasks in specs.md.
   - Leave them as TODO unless required to make the current auth flow coherent.
 
+---
+
+## Task 4: Billing, Subscriptions & Credits (Hybrid Model, User-Based)
+
+### Goal
+
+Implement a hybrid monetization system where:
+
+- Each **User is the billing entity** (no Teams).
+- The app supports **subscription plans** via Stripe (Laravel Cashier recommended).
+- The app supports a **credit system** for metered/AI-heavy usage.
+- Subscription plans:
+  - Grant premium features.
+  - Include monthly credits.
+  - Optionally give discounts or bonuses.
+- Users can **buy additional credits** as one-off purchases (credit packs).
+- Feature access is based on:
+  - The user’s **plan** (free vs paid)
+  - The user’s **credit balance**
+
+This system must be clean, maintainable, and aligned with standard SaaS practices.
+
+---
+
+## 4.1 Core Model & Assumptions
+
+- Authentication uses Google OAuth + Magic Link.
+- User emails are **immutable** (cannot be changed).
+- Billing is **per user**.
+- No Teams/Workspaces.
+- Each user has:
+  - A `plan` (derived from subscription or default free)
+  - A `subscription_status`
+  - A `credits_balance` integer
+
+Credits come from:
+- Monthly plan allocations
+- One-off credit pack purchases
+- Optional admin adjustments
+
+---
+
+## 4.2 Plans & Configuration
+
+All plan definitions must exist in a single config file (example: `config/plans.php`).
+
+Each plan must define:
+
+- `key` (identifier, e.g. `free`, `pro`)
+- `name`
+- `type`: `free` or `paid`
+- `stripe_price_id` (nullable for free plans)
+- `monthly_credits`
+- `features`: array of enabled feature keys
+
+Example structure:
+
+```
+'plans' => [
+  'free' => [
+    'key' => 'free',
+    'name' => 'Free',
+    'type' => 'free',
+    'monthly_credits' => 10,
+    'features' => ['basic_usage'],
+  ],
+  'pro' => [
+    'key' => 'pro',
+    'name' => 'Pro',
+    'type' => 'paid',
+    'interval' => 'monthly',
+    'stripe_price_id' => env('STRIPE_PRICE_PRO_MONTHLY'),
+    'monthly_credits' => 200,
+    'features' => ['basic_usage', 'advanced_usage', 'priority'],
+  ],
+]
+```
+
+This config must be used by the Pricing page, Billing page, and feature gating logic.
+
+---
+
+## 4.3 Subscription System (Stripe)
+
+Subscriptions operate on a per-user basis.
+
+Rules:
+
+- A user can have **zero or one** active subscription.
+- If no subscription exists, the user is automatically on the `free` plan.
+- A Stripe subscription determines the user’s paid plan.
+
+Required flows:
+
+### Start subscription
+- User selects a plan.
+- System creates or reuses a Stripe customer.
+- User is redirected to Stripe Checkout.
+- On success, subscription + plan is stored internally.
+
+### Change plan
+- Backend updates Stripe subscription accordingly.
+- Internal plan mapping updates.
+
+### Cancel subscription
+- User cancels their plan.
+- Access continues until period end.
+- After expiration → return to free plan.
+
+### Stripe Billing Portal
+- Provide a direct “Manage billing” link to customer portal.
+
+### Stripe Webhooks
+Must update:
+- Subscription created
+- Subscription updated
+- Subscription canceled
+- Payment failures
+
+Webhook results update internal subscription fields.
+
+---
+
+## 4.4 Credits System
+
+Credits are for AI-heavy or metered operations.
+
+User model must store:
+- `credits_balance`
+
+A `credit_transactions` table is recommended to track:
+- Additions (subscription monthly credits, credit packs)
+- Subtractions (usage)
+- Context (feature name / action)
+
+### Credits Sources
+
+1. Monthly plan allocation
+2. One-off credit packs via Stripe Checkout
+3. Admin adjustments (future)
+
+### Credits Usage
+
+Before performing a credit-costing action:
+- Check user has sufficient credits
+- If not enough:
+  - Trigger credits paywall
+- If enough:
+  - Deduct credits
+  - Record transaction (optional)
+
+Credits must never go negative.
+
+---
+
+## 4.5 Feature Gating (Plans + Credits)
+
+Every feature must define:
+- Required plan(s)
+- Required credit cost
+
+Examples:
+
+- Basic feature  
+  - plans: free, pro  
+  - credits: 0
+
+- Light AI  
+  - plans: free, pro  
+  - credits: 1
+
+- Heavy AI  
+  - plans: pro  
+  - credits: 5
+
+### Required Helper Logic
+
+Implement helper methods:
+
+```
+$user->onPlan('pro')
+$user->canUseFeature('advanced_ai')
+$user->hasCredits($amount)
+$user->chargeCredits($amount, $context)
+```
+
+### Paywalls
+
+Two reusable paywall UI components:
+
+1. **Plan Paywall**  
+   - “This feature requires a paid plan.”  
+   - Button to upgrade  
+
+2. **Credits Paywall**  
+   - “You don’t have enough credits.”  
+   - Button to buy credits  
+
+Cursor must reuse these consistently.
+
+---
+
+## 4.6 Pricing Page
+
+Pass for now.
+
+---
+
+## 5.7 Billing Page (User Settings → Billing)
+
+The Billing page must show:
+
+- Current plan (free or paid)
+- Subscription status
+- Credits balance
+- Monthly credits allocation
+- Available actions:
+  - Upgrade
+  - Change plan
+  - Cancel plan
+  - Open Stripe Billing Portal
+  - Buy Credits
+
+UI must follow the dashboard style.
+
+---
+
+## 4.8 Buy Credits Flow
+
+Flow requirements:
+
+1. User clicks “Buy Credits”
+2. Chooses pack (e.g. 50, 100, 500)
+3. Stripe Checkout session is created
+4. On payment success:
+   - Webhook or return route increments credits_balance
+5. User sees updated credits
+
+Credit packs must be separate Stripe products.
+
+---
+
+## 4.9 Paywall Logic & UX
+
+When a user cannot use a feature:
+
+### If plan is insufficient:
+- Show Plan Paywall component
+- Suggest upgrade
+
+### If credits insufficient:
+- Show Credits Paywall component
+- Suggest buying a pack
+
+These components must be:
+- Reusable
+- Consistent
+- Positioned similarly across all features
+
+---
+
+## 4.10 Admin Panel – Billing Overview
+
+Admin panel must show details for the user in the user info
+
+- Current plan
+- Subscription status
+- Next billing date
+- Credits balance
+- Stripe customer ID
+
+Admin actions:
+- v1: **view-only**
+- Future:
+  - Manual credit adjustments
+
+---
+
+## 4.11 Invariants & Edge Cases
+
+1. Every user always has a plan  
+   No subscription → plan = free.
+
+2. Credits cannot go negative  
+   Must check before deducting.
+
+3. Email addresses are immutable  
+   Stable Stripe customer identity.
+
+4. Subscription data must always sync with Stripe  
+   Use webhooks for updates.
+
+5. No deletion of user data on downgrade  
+   Downgrade only restricts access, never deletes content.
+
+---
+
+## 4.12 UI & Code Structure Expectations (for Cursor)
+
+Cursor must:
+
+- Organize all billing, subscription, and credit logic in a **Billing/Payments domain**.
+- Follow dashboard UI guidelines:
+  - shadcn UI components
+  - Tailwind spacing
+  - lucide icons
+- Use a single unified gating mechanism:
+  - Check plan
+  - Check credits
+  - Trigger appropriate paywall
+
+Avoid duplicating logic or creating ad-hoc billing code.
+
+---
+
+## 4.13 Specs & Task List Updates
+
+After implementation:
+
+- Mark Task 4 as completed.
+- Add follow-up tasks if discovered, such as:
+  - Credit transaction history
+  - Trial logic
+  - Coupons/promotions
+  - Monthly credit reset scheduler
+  - Additional plans
+- Ensure all UI and backend code follows the design and architectural guidelines above.
+
+---
+
 
 # Project Tasks / Roadmap
 
@@ -1240,5 +1571,21 @@ All error conditions must be handled gracefully with user-friendly messages.
   - Settings: Removed Password and Two-Factor Auth from Settings navigation and routes
   - Security: Suspended users blocked from both auth methods, rate limiting for magic link requests, proper error handling
   - Documentation: Updated README with Google OAuth setup instructions and authentication overview
+- [x] Task 4: Billing, Subscriptions & Credits (Hybrid Model, User-Based) - COMPLETE
+  - Laravel Cashier installed and configured
+  - Database migrations: billing fields on users, credit_transactions table
+  - Config-driven plans (config/plans.php) with free/pro/business tiers
+  - Credit system: HasCredits trait, CreditTransaction model
+  - Subscription system: HasSubscription trait, Billable integration
+  - Services: PlanService, CreditService, FeatureGateService
+  - Controllers: BillingController, CheckoutController, StripeWebhookController
+  - Routes: billing routes, webhook endpoint
+  - Frontend components: PlanPaywall, CreditsPaywall, FeatureGate, CreditBalance
+  - Billing page UI with plan management and credit purchases
+  - TypeScript types for billing entities
+  - Admin panel integration: billing info displayed on user details
+  - Billing section added to Settings dialog
+  - Billing link added to main navigation sidebar
+  - **Note:** Monthly credit reset command and Stripe product configuration still needed for production
 
 ---

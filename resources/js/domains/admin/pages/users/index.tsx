@@ -22,6 +22,20 @@ interface FullUser extends User {
     email_verified_at: string | null;
     two_factor_enabled?: boolean;
     updated_at: string;
+    billing?: {
+        credits_balance: number;
+        current_plan: {
+            key: string;
+            name: string;
+            type: 'free' | 'paid';
+            monthly_credits: number;
+            features: string[];
+        } | null;
+        subscription_status: 'none' | 'active' | 'canceled' | 'expired';
+        stripe_customer_id?: string | null;
+        next_billing_date?: string | null;
+        stripe_subscription_id?: string | null;
+    };
 }
 
 interface PaginatedUsers {

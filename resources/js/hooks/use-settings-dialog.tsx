@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-type SettingsSection = 'profile' | 'appearance';
+type SettingsSection = 'profile' | 'appearance' | 'billing';
 
 interface SettingsDialogContextType {
     open: boolean;

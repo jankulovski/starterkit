@@ -34,3 +34,4 @@ Route::middleware(['auth', 'verified', 'admin'])
     ->group(base_path('routes/admin.php'));
 
 require __DIR__.'/settings.php';
+require __DIR__.'/billing.php';

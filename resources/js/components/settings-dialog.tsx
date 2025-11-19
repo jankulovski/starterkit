@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Paintbrush, User, PanelLeft } from 'lucide-react';
+import { Paintbrush, User, PanelLeft, CreditCard } from 'lucide-react';
 import { usePage } from '@inertiajs/react';
 
 import {
@@ -22,12 +22,14 @@ import { UserInfo } from '@/components/user-info';
 import { type SharedData } from '@/types';
 import ProfileSettings from '@/domains/settings/profile-settings';
 import AppearanceSettings from '@/domains/settings/appearance-settings';
+import BillingSettings from '@/domains/settings/billing-settings';
 
-type SettingsSection = 'profile' | 'appearance';
+type SettingsSection = 'profile' | 'appearance' | 'billing';
 
 const settingsNav = [
     { id: 'profile' as SettingsSection, name: 'Profile', icon: User },
     { id: 'appearance' as SettingsSection, name: 'Appearance', icon: Paintbrush },
+    { id: 'billing' as SettingsSection, name: 'Billing', icon: CreditCard },
 ];
 
 // Helper function to get cookie value
@@ -51,6 +53,55 @@ interface SettingsDialogProps {
     defaultSection?: SettingsSection;
     mustVerifyEmail?: boolean;
     status?: string;
+}
+
+// Billing Settings Wrapper Component
+function BillingSettingsWrapper() {
+    const [billingData, setBillingData] = React.useState<any>(null);
+    const [loading, setLoading] = React.useState(true);
+
+    React.useEffect(() => {
+        fetch('/settings/billing', {
+            headers: {
+                Accept: 'application/json',
+            },
+            credentials: 'same-origin',
+        })
+            .then((res) => {
+                if (!res.ok) {
+                    throw new Error('Failed to fetch billing data');
+                }
+                return res.json();
+            })
+            .then((data) => {
+                setBillingData(data);
+                setLoading(false);
+            })
+            .catch((error) => {
+                console.error('Error loading billing data:', error);
+                setLoading(false);
+            });
+    }, []);
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center py-8">
+                <p className="text-muted-foreground text-sm">Loading billing information...</p>
+            </div>
+        );
+    }
+
+    if (!billingData) {
+        return (
+            <div className="flex items-center justify-center py-8">
+                <p className="text-muted-foreground text-sm">
+                    Failed to load billing information.
+                </p>
+            </div>
+        );
+    }
+
+    return <BillingSettings {...billingData} />;
 }
 
 export function SettingsDialog({
@@ -130,11 +181,11 @@ export function SettingsDialog({
                                             }
                                         }}
                                         className={cn(
-                                            'flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                                            'flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
                                             'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
                                             activeSection === item.id
-                                                ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                                                : 'text-sidebar-foreground',
+                                                ? 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold'
+                                                : 'text-sidebar-foreground font-medium',
                                         )}
                                         title={item.name}
                                     >
@@ -197,6 +248,9 @@ export function SettingsDialog({
                                 )}
                                 {activeSection === 'appearance' && (
                                     <AppearanceSettings />
+                                )}
+                                {activeSection === 'billing' && (
+                                    <BillingSettingsWrapper />
                                 )}
                             </div>
                         </div>

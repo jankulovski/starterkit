@@ -3,15 +3,18 @@
 namespace App\Domain\Users\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Domain\Billing\Traits\HasCredits;
+use App\Domain\Billing\Traits\HasSubscription;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Cashier\Billable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, TwoFactorAuthenticatable;
+    use HasFactory, Notifiable, TwoFactorAuthenticatable, Billable, HasCredits, HasSubscription;
 
     /**
      * The attributes that are mass assignable.
@@ -24,6 +27,8 @@ class User extends Authenticatable
         'password',
         'is_admin',
         'suspended_at',
+        'credits_balance',
+        'current_plan_key',
     ];
 
     /**
@@ -51,6 +56,8 @@ class User extends Authenticatable
             'two_factor_confirmed_at' => 'datetime',
             'is_admin' => 'boolean',
             'suspended_at' => 'datetime',
+            'trial_ends_at' => 'datetime',
+            'credits_balance' => 'integer',
         ];
     }
 

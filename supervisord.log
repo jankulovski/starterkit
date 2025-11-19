@@ -107,3 +107,28 @@
 2025-11-18 22:05:10,369 INFO reaped unknown pid 312 (exit status 0)
 2025-11-18 22:09:51,633 INFO reaped unknown pid 372 (exit status 0)
 2025-11-19 11:49:51,046 INFO reaped unknown pid 479 (exit status 0)
+2025-11-19 21:28:17,783 INFO Set uid to user 0 succeeded
+2025-11-19 21:28:17,784 INFO supervisord started with pid 1
+2025-11-19 21:28:18,793 INFO spawned: 'laravel-server' with pid 7
+2025-11-19 21:28:18,795 INFO spawned: 'vite' with pid 8
+2025-11-19 21:28:20,512 INFO success: laravel-server entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-11-19 21:28:20,512 INFO success: vite entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-11-19 21:28:48,774 INFO reaped unknown pid 108 (exit status 0)
+2025-11-19 21:29:19,651 WARN received SIGTERM indicating exit request
+2025-11-19 21:29:19,652 INFO waiting for laravel-server, vite to die
+2025-11-19 21:29:21,005 INFO Set uid to user 0 succeeded
+2025-11-19 21:29:21,007 INFO supervisord started with pid 1
+2025-11-19 21:29:22,016 INFO spawned: 'laravel-server' with pid 7
+2025-11-19 21:29:22,018 INFO spawned: 'vite' with pid 8
+2025-11-19 21:29:23,650 INFO success: laravel-server entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-11-19 21:29:23,650 INFO success: vite entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-11-19 21:29:46,240 WARN received SIGTERM indicating exit request
+2025-11-19 21:29:46,240 INFO waiting for laravel-server, vite to die
+2025-11-19 21:29:46,250 WARN stopped: vite (terminated by SIGTERM)
+2025-11-19 21:29:46,255 INFO stopped: laravel-server (exit status 0)
+2025-11-19 21:29:46,678 INFO Set uid to user 0 succeeded
+2025-11-19 21:29:46,685 INFO supervisord started with pid 1
+2025-11-19 21:29:47,693 INFO spawned: 'laravel-server' with pid 7
+2025-11-19 21:29:47,696 INFO spawned: 'vite' with pid 8
+2025-11-19 21:29:49,373 INFO success: laravel-server entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-11-19 21:29:49,373 INFO success: vite entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)

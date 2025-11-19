@@ -10,7 +10,7 @@ import { useSettingsDialog } from '@/hooks/use-settings-dialog';
 import { logout } from '@/routes';
 import { type User } from '@/types';
 import { Link, router } from '@inertiajs/react';
-import { LogOut, Settings, Shield } from 'lucide-react';
+import { CreditCard, LogOut, Settings, Shield } from 'lucide-react';
 
 interface UserMenuContentProps {
     user: User;
@@ -30,6 +30,11 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
         openSettings('profile');
     };
 
+    const handleOpenBilling = () => {
+        cleanup();
+        openSettings('billing');
+    };
+
     return (
         <>
             <DropdownMenuLabel className="p-0 font-normal">
@@ -42,6 +47,10 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                 <DropdownMenuItem onClick={handleOpenSettings}>
                         <Settings className="mr-2" />
                         Settings
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleOpenBilling}>
+                        <CreditCard className="mr-2" />
+                        Billing
                 </DropdownMenuItem>
                 {user.is_admin && (
                     <DropdownMenuItem asChild>

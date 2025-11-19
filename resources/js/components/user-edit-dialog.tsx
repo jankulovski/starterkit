@@ -16,12 +16,26 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { UserInfo } from '@/components/user-info';
 import { type User as UserType } from '@/types';
-import { Mail, Calendar, CheckCircle2, XCircle, Ban, CheckCircle } from 'lucide-react';
+import { Mail, Calendar, CheckCircle2, XCircle, Ban, CheckCircle, CreditCard, Coins } from 'lucide-react';
 import { Transition } from '@headlessui/react';
 
 interface User extends UserType {
     is_admin: boolean;
     suspended_at: string | null;
+    billing?: {
+        credits_balance: number;
+        current_plan: {
+            key: string;
+            name: string;
+            type: 'free' | 'paid';
+            monthly_credits: number;
+            features: string[];
+        } | null;
+        subscription_status: 'none' | 'active' | 'canceled' | 'expired';
+        stripe_customer_id?: string | null;
+        next_billing_date?: string | null;
+        stripe_subscription_id?: string | null;
+    };
 }
 
 interface UserEditDialogProps {
@@ -171,6 +185,88 @@ export function UserEditDialog({ open, onOpenChange, user, onSuccess }: UserEdit
                     </div>
 
                     <Separator />
+
+                    {/* Billing Information */}
+                    {user.billing && (
+                        <>
+                            <div className="space-y-4">
+                                <h3 className="text-sm font-semibold text-foreground">Billing Information</h3>
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                            <CreditCard className="h-3.5 w-3.5" />
+                                            <span>Current Plan</span>
+                                        </div>
+                                        <p className="text-sm font-medium">
+                                            {user.billing.current_plan?.name || 'Free'}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                            {user.billing.current_plan?.type === 'paid' 
+                                                ? 'Paid subscription' 
+                                                : 'Free plan'}
+                                        </p>
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                            <Coins className="h-3.5 w-3.5" />
+                                            <span>Credits Balance</span>
+                                        </div>
+                                        <p className="text-sm font-medium">
+                                            {user.billing.credits_balance}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                            {user.billing.current_plan?.monthly_credits || 0} credits/month included
+                                        </p>
+                                    </div>
+
+                                    {user.billing.subscription_status && user.billing.subscription_status !== 'none' && (
+                                        <div className="space-y-1">
+                                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                <span>Subscription Status</span>
+                                            </div>
+                                            <Badge 
+                                                variant={
+                                                    user.billing.subscription_status === 'active' 
+                                                        ? 'default' 
+                                                        : user.billing.subscription_status === 'canceled'
+                                                        ? 'secondary'
+                                                        : 'destructive'
+                                                }
+                                                className="text-xs"
+                                            >
+                                                {user.billing.subscription_status}
+                                            </Badge>
+                                        </div>
+                                    )}
+
+                                    {user.billing.next_billing_date && (
+                                        <div className="space-y-1">
+                                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                <Calendar className="h-3.5 w-3.5" />
+                                                <span>Next Billing</span>
+                                            </div>
+                                            <p className="text-sm font-medium">
+                                                {new Date(user.billing.next_billing_date).toLocaleDateString()}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {user.billing.stripe_customer_id && (
+                                        <div className="space-y-1">
+                                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                <span>Stripe Customer ID</span>
+                                            </div>
+                                            <p className="text-sm font-mono text-xs break-all">
+                                                {user.billing.stripe_customer_id}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            <Separator />
+                        </>
+                    )}
 
                     {/* Edit Form */}
                     <div className="space-y-4">
