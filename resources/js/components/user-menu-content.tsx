@@ -10,7 +10,7 @@ import { useSettingsDialog } from '@/hooks/use-settings-dialog';
 import { logout } from '@/routes';
 import { type User } from '@/types';
 import { Link, router } from '@inertiajs/react';
-import { LogOut, Settings } from 'lucide-react';
+import { LogOut, Settings, Shield } from 'lucide-react';
 
 interface UserMenuContentProps {
     user: User;
@@ -43,6 +43,18 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                         <Settings className="mr-2" />
                         Settings
                 </DropdownMenuItem>
+                {user.is_admin && (
+                    <DropdownMenuItem asChild>
+                        <Link
+                            href="/admin"
+                            className="block w-full"
+                            onClick={cleanup}
+                        >
+                            <Shield className="mr-2" />
+                            Admin
+                        </Link>
+                    </DropdownMenuItem>
+                )}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
