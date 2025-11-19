@@ -97,6 +97,10 @@ export function UserEditDialog({ open, onOpenChange, user, onSuccess }: UserEdit
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogTitle className="sr-only">Edit User: {displayUser.name}</DialogTitle>
+                <DialogDescription className="sr-only">
+                    User details and settings for {displayUser.name}
+                </DialogDescription>
                 <DialogHeader>
                     <div className="flex items-center gap-3">
                         <UserInfo user={displayUser} showEmail={true} />
