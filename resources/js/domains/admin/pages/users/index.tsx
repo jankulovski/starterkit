@@ -1,11 +1,11 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Search, Users as UsersIcon, ArrowLeft } from 'lucide-react';
+import { DataTable, type Column } from '@/components/data-table';
+import { DataTableFilters, type FilterConfig } from '@/components/data-table-filters';
+import { ArrowLeft } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface User {
     id: number;
@@ -33,6 +33,12 @@ interface AdminUsersIndexProps {
     users: PaginatedUsers;
     filters: {
         search?: string;
+        status?: string[];
+    };
+    filterCounts?: {
+        admin: number;
+        user: number;
+        suspended: number;
     };
 }
 
@@ -47,19 +53,65 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function AdminUsersIndex({ users, filters: initialFilters }: AdminUsersIndexProps) {
-    const { data, setData, get, processing } = useForm({
-        search: initialFilters.search || '',
-    });
+export default function AdminUsersIndex({ 
+    users, 
+    filters: initialFilters,
+    filterCounts = { admin: 0, user: 0, suspended: 0 }
+}: AdminUsersIndexProps) {
+    const [searchValue, setSearchValue] = useState(initialFilters.search || '');
+    const [selectedStatus, setSelectedStatus] = useState<string[]>(initialFilters.status || []);
+    const [selectedRows, setSelectedRows] = useState<Set<string | number>>(new Set());
 
-    const handleSearch = (e: React.FormEvent) => {
-        e.preventDefault();
-        get('/admin/users', {
+    // Debounce search
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            applyFilters(searchValue, selectedStatus);
+        }, 300);
+
+        return () => clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchValue]);
+
+    const applyFilters = useCallback((search: string, status: string[]) => {
+        const params: Record<string, any> = {};
+        
+        if (search) {
+            params.search = search;
+        }
+        
+        if (status.length > 0) {
+            params.status = status;
+        }
+
+        router.get('/admin/users', params, {
             preserveState: true,
             preserveScroll: true,
-            data: {
-                search: data.search,
-            },
+            replace: true,
+        });
+    }, []);
+
+    const handleSearchChange = (value: string) => {
+        setSearchValue(value);
+    };
+
+    const handleSearchSubmit = () => {
+        applyFilters(searchValue, selectedStatus);
+    };
+
+    const handleFilterChange = (filterId: string, values: string[]) => {
+        if (filterId === 'status') {
+            setSelectedStatus(values);
+            applyFilters(searchValue, values);
+        }
+    };
+
+    const handleReset = () => {
+        setSearchValue('');
+        setSelectedStatus([]);
+        router.get('/admin/users', {}, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
         });
     };
 
@@ -71,6 +123,106 @@ export default function AdminUsersIndex({ users, filters: initialFilters }: Admi
             });
         }
     };
+
+    const handleRowAction = (action: string, row: User) => {
+        switch (action) {
+            case 'view':
+                router.visit(`/admin/users/${row.id}`);
+                break;
+            case 'suspend':
+                router.post(`/admin/users/${row.id}/suspend`, {}, {
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        router.reload({ only: ['users'] });
+                    },
+                });
+                break;
+            case 'unsuspend':
+                router.post(`/admin/users/${row.id}/unsuspend`, {}, {
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        router.reload({ only: ['users'] });
+                    },
+                });
+                break;
+        }
+    };
+
+    const getActionMenuItems = (user: User) => {
+        const items = [
+            {
+                label: 'View',
+                action: 'view',
+            },
+        ];
+
+        if (user.suspended_at) {
+            items.push({
+                label: 'Unsuspend',
+                action: 'unsuspend',
+            });
+        } else {
+            items.push({
+                label: 'Suspend',
+                action: 'suspend',
+                variant: 'destructive' as const,
+            });
+        }
+
+        return items;
+    };
+
+    const columns: Column<User>[] = [
+        {
+            id: 'id',
+            header: 'ID',
+            accessorKey: 'id',
+        },
+        {
+            id: 'name',
+            header: 'Name',
+            accessorKey: 'name',
+            cell: (row) => (
+                <span className="font-medium">{row.name}</span>
+            ),
+        },
+        {
+            id: 'email',
+            header: 'Email',
+            accessorKey: 'email',
+            cell: (row) => (
+                <span className="text-muted-foreground">{row.email}</span>
+            ),
+        },
+        {
+            id: 'created_at',
+            header: 'Created',
+            accessorKey: 'created_at',
+            cell: (row) => (
+                <span className="text-muted-foreground">
+                    {new Date(row.created_at).toLocaleDateString()}
+                </span>
+            ),
+        },
+        {
+            id: 'status',
+            header: 'Status',
+            cell: (row) => (
+                <div className="flex flex-col gap-1">
+                    {row.is_admin ? (
+                        <Badge variant="default">Admin</Badge>
+                    ) : (
+                        <Badge variant="secondary">User</Badge>
+                    )}
+                    {row.suspended_at && (
+                        <Badge variant="destructive" className="text-xs">
+                            Suspended
+                        </Badge>
+                    )}
+                </div>
+            ),
+        },
+    ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -92,201 +244,53 @@ export default function AdminUsersIndex({ users, filters: initialFilters }: Admi
                     </Link>
                 </div>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Search Users</CardTitle>
-                        <CardDescription>
-                            Search by name or email address
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <form onSubmit={handleSearch} className="flex gap-2">
-                            <div className="relative flex-1">
-                                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                <Input
-                                    type="text"
-                                    placeholder="Search by name or email..."
-                                    value={data.search}
-                                    onChange={(e) => setData('search', e.target.value)}
-                                    className="pl-9"
-                                />
-                            </div>
-                            <Button type="submit" disabled={processing}>
-                                Search
-                            </Button>
-                            {data.search && (
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => {
-                                        setData('search', '');
-                                        router.get('/admin/users');
-                                    }}
-                                >
-                                    Clear
-                                </Button>
-                            )}
-                        </form>
-                    </CardContent>
-                </Card>
+                <DataTableFilters
+                    searchValue={searchValue}
+                    onSearchChange={handleSearchChange}
+                    onSearchSubmit={handleSearchSubmit}
+                    filters={[
+                        {
+                            id: 'status',
+                            label: 'Status',
+                            options: [
+                                { value: 'admin', label: 'Admin', count: filterCounts.admin },
+                                { value: 'user', label: 'User', count: filterCounts.user },
+                                { value: 'suspended', label: 'Suspended', count: filterCounts.suspended },
+                            ],
+                        },
+                    ]}
+                    selectedFilters={{
+                        status: selectedStatus,
+                    }}
+                    onFilterChange={handleFilterChange}
+                    onReset={handleReset}
+                    searchPlaceholder="Filter users..."
+                />
 
-                <Card>
-                    <CardHeader>
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <CardTitle>Users</CardTitle>
-                                <CardDescription>
-                                    Showing {users.data.length} of {users.total} users
-                                </CardDescription>
-                            </div>
-                            <UsersIcon className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        {users.data.length === 0 ? (
-                            <div className="py-8 text-center text-muted-foreground">
-                                <UsersIcon className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                                <p>No users found</p>
-                                {data.search && (
-                                    <p className="mt-2 text-sm">
-                                        Try adjusting your search criteria
-                                    </p>
-                                )}
-                            </div>
-                        ) : (
-                            <>
-                                <div className="overflow-x-auto">
-                                    <table className="w-full">
-                                        <thead>
-                                            <tr className="border-b">
-                                                <th className="px-4 py-3 text-left text-sm font-medium">
-                                                    ID
-                                                </th>
-                                                <th className="px-4 py-3 text-left text-sm font-medium">
-                                                    Name
-                                                </th>
-                                                <th className="px-4 py-3 text-left text-sm font-medium">
-                                                    Email
-                                                </th>
-                                                <th className="px-4 py-3 text-left text-sm font-medium">
-                                                    Created
-                                                </th>
-                                                <th className="px-4 py-3 text-left text-sm font-medium">
-                                                    Status
-                                                </th>
-                                                <th className="px-4 py-3 text-right text-sm font-medium">
-                                                    Actions
-                                                </th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {users.data.map((user) => (
-                                                <tr
-                                                    key={user.id}
-                                                    className="border-b hover:bg-muted/50 transition-colors"
-                                                >
-                                                    <td className="px-4 py-3 text-sm">
-                                                        {user.id}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-sm font-medium">
-                                                        {user.name}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-sm text-muted-foreground">
-                                                        {user.email}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-sm text-muted-foreground">
-                                                        {new Date(user.created_at).toLocaleDateString()}
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        <div className="flex flex-col gap-1">
-                                                            {user.is_admin ? (
-                                                                <Badge variant="default">Admin</Badge>
-                                                            ) : (
-                                                                <Badge variant="secondary">User</Badge>
-                                                            )}
-                                                            {user.suspended_at && (
-                                                                <Badge variant="destructive" className="text-xs">
-                                                                    Suspended
-                                                                </Badge>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-4 py-3 text-right">
-                                                        <Link
-                                                            href={`/admin/users/${user.id}`}
-                                                            className="text-sm text-primary hover:underline"
-                                                        >
-                                                            View
-                                                        </Link>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                {users.last_page > 1 && (
-                                    <div className="mt-4 flex items-center justify-between border-t pt-4">
-                                        <div className="text-sm text-muted-foreground">
-                                            Page {users.current_page} of {users.last_page}
-                                        </div>
-                                        <div className="flex gap-2">
-                                            {users.links.map((link, index) => {
-                                                if (index === 0) {
-                                                    return (
-                                                        <Button
-                                                            key={index}
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={() => handlePageChange(link.url)}
-                                                            disabled={!link.url || link.active}
-                                                        >
-                                                            Previous
-                                                        </Button>
-                                                    );
-                                                }
-                                                if (index === users.links.length - 1) {
-                                                    return (
-                                                        <Button
-                                                            key={index}
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={() => handlePageChange(link.url)}
-                                                            disabled={!link.url || link.active}
-                                                        >
-                                                            Next
-                                                        </Button>
-                                                    );
-                                                }
-                                                if (
-                                                    link.label === '...' ||
-                                                    Math.abs(
-                                                        parseInt(link.label) - users.current_page
-                                                    ) > 2
-                                                ) {
-                                                    return null;
-                                                }
-                                                return (
-                                                    <Button
-                                                        key={index}
-                                                        variant={link.active ? 'default' : 'outline'}
-                                                        size="sm"
-                                                        onClick={() => handlePageChange(link.url)}
-                                                        disabled={!link.url}
-                                                    >
-                                                        {link.label}
-                                                    </Button>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
-                            </>
-                        )}
-                    </CardContent>
-                </Card>
+                <DataTable
+                    data={users.data}
+                    columns={columns}
+                    getRowId={(row) => row.id}
+                    onRowAction={handleRowAction}
+                    actionMenuItems={getActionMenuItems}
+                    enableSelection={true}
+                    selectedRows={selectedRows}
+                    onSelectionChange={setSelectedRows}
+                    emptyMessage={
+                        searchValue || selectedStatus.length > 0
+                            ? "No users found. Try adjusting your search criteria."
+                            : "No users found"
+                    }
+                    pagination={{
+                        currentPage: users.current_page,
+                        lastPage: users.last_page,
+                        perPage: users.per_page,
+                        total: users.total,
+                        links: users.links,
+                        onPageChange: handlePageChange,
+                    }}
+                />
             </div>
         </AppLayout>
     );
 }
-

@@ -26,6 +26,40 @@ class UserController extends Controller
             });
         }
 
+        // Status filter
+        if ($request->has('status') && is_array($request->status) && !empty($request->status)) {
+            $statuses = $request->status;
+            $query->where(function ($q) use ($statuses) {
+                $hasCondition = false;
+                
+                if (in_array('admin', $statuses)) {
+                    $q->orWhere('is_admin', true);
+                    $hasCondition = true;
+                }
+                
+                if (in_array('user', $statuses)) {
+                    $q->orWhere('is_admin', false);
+                    $hasCondition = true;
+                }
+                
+                if (in_array('suspended', $statuses)) {
+                    $q->orWhereNotNull('suspended_at');
+                    $hasCondition = true;
+                }
+                
+                if (!$hasCondition) {
+                    // If no valid status selected, return no results
+                    $q->whereRaw('1 = 0');
+                }
+            });
+        }
+
+        // Calculate filter counts
+        $totalUsers = User::count();
+        $adminCount = User::where('is_admin', true)->count();
+        $userCount = User::where('is_admin', false)->count();
+        $suspendedCount = User::whereNotNull('suspended_at')->count();
+
         $users = $query->latest('created_at')
             ->paginate(15)
             ->withQueryString();
@@ -41,7 +75,12 @@ class UserController extends Controller
                     'created_at' => $user->created_at->toISOString(),
                 ];
             }),
-            'filters' => $request->only(['search']),
+            'filters' => $request->only(['search', 'status']),
+            'filterCounts' => [
+                'admin' => $adminCount,
+                'user' => $userCount,
+                'suspended' => $suspendedCount,
+            ],
         ]);
     }
 
