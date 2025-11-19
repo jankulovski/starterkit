@@ -113,7 +113,7 @@ export function DataTable<T extends Record<string, any>>({
     }
 
     return (
-        <div className={cn("space-y-4", className)}>
+        <div className={cn("gap-2", className)}>
             <div className="rounded-md border">
                 <Table>
                     <TableHeader>
@@ -216,7 +216,7 @@ export function DataTable<T extends Record<string, any>>({
             </div>
 
             {pagination && (
-                <div className="flex items-center justify-between border-t px-2 py-4">
+                <div className="flex items-center justify-between px-2 py-4">
                     <div className="text-sm text-muted-foreground">
                         {enableSelection && selectedRows.size > 0
                             ? `${selectedRows.size} of ${pagination.total} row(s) selected`

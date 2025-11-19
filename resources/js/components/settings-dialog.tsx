@@ -30,9 +30,6 @@ const settingsNav = [
     { id: 'appearance' as SettingsSection, name: 'Appearance', icon: Paintbrush },
 ];
 
-const SETTINGS_SIDEBAR_COOKIE_NAME = 'settings_sidebar_state';
-const SETTINGS_SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
-
 // Helper function to get cookie value
 function getCookie(name: string): string | null {
     const value = `; ${document.cookie}`;
@@ -69,10 +66,6 @@ export function SettingsDialog({
     
     // Initialize sidebar state from cookie, with defaults: open on desktop, closed on mobile
     const [sidebarOpen, setSidebarOpen] = React.useState(() => {
-        const savedState = getCookie(SETTINGS_SIDEBAR_COOKIE_NAME);
-        if (savedState !== null) {
-            return savedState === 'true';
-        }
         // Default: open on desktop (>= 768px), closed on mobile (< 768px)
         if (typeof window !== 'undefined') {
             return window.innerWidth >= 768;
@@ -80,20 +73,21 @@ export function SettingsDialog({
         return true; // SSR fallback: default to open
     });
 
+    // Reinitialize sidebar state whenever the dialog opens
+    React.useEffect(() => {
+        if (open) {
+            // Recheck window width and set sidebar state accordingly
+            if (typeof window !== 'undefined') {
+                setSidebarOpen(window.innerWidth >= 768);
+            }
+        }
+    }, [open]);
+
     React.useEffect(() => {
         if (open && defaultSection) {
             setActiveSection(defaultSection);
         }
     }, [open, defaultSection]);
-
-    // Save sidebar state to cookie when it changes
-    React.useEffect(() => {
-        setCookie(
-            SETTINGS_SIDEBAR_COOKIE_NAME,
-            sidebarOpen.toString(),
-            SETTINGS_SIDEBAR_COOKIE_MAX_AGE,
-        );
-    }, [sidebarOpen]);
 
     const currentSectionName = settingsNav.find(
         (item) => item.id === activeSection,
