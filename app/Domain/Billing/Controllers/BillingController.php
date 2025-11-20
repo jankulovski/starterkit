@@ -62,6 +62,11 @@ class BillingController extends Controller
                 ],
             ]);
 
+            // Return JSON for Inertia requests (external redirects don't work with Inertia)
+            if ($request->header('X-Inertia')) {
+                return response()->json(['checkout_url' => $checkoutSession->url]);
+            }
+
             return redirect($checkoutSession->url);
         } catch (ApiErrorException $e) {
             return back()->withErrors(['stripe' => 'Failed to create checkout session: '.$e->getMessage()]);
@@ -84,6 +89,11 @@ class BillingController extends Controller
                 'customer' => $user->stripe_id,
                 'return_url' => route('dashboard'),
             ]);
+
+            // Return JSON for Inertia requests (external redirects don't work with Inertia)
+            if ($request->header('X-Inertia')) {
+                return response()->json(['portal_url' => $portalSession->url]);
+            }
 
             return redirect($portalSession->url);
         } catch (ApiErrorException $e) {

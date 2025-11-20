@@ -6,12 +6,14 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
 import { type BillingData, type Plan, type CreditPack } from '@/types/billing';
 import { useForm, router } from '@inertiajs/react';
+import { useState } from 'react';
 import {
     CreditCard,
     Check,
     Coins,
     ExternalLink,
     Calendar,
+    ArrowUp,
 } from 'lucide-react';
 import { Transition } from '@headlessui/react';
 
@@ -40,6 +42,9 @@ export default function BillingSettings({
     credits,
     stripe_customer_id,
 }: BillingSettingsProps) {
+    const [checkoutProcessing, setCheckoutProcessing] = useState(false);
+    const [portalProcessing, setPortalProcessing] = useState(false);
+
     const checkoutForm = useForm({
         plan_key: '',
     });
@@ -51,14 +56,40 @@ export default function BillingSettings({
     const portalForm = useForm({});
     const cancelForm = useForm({});
 
-    const handleCheckout = (planKey: string) => {
-        checkoutForm.setData('plan_key', planKey);
-        checkoutForm.post('/billing/checkout', {
-            preserveScroll: true,
-            onSuccess: () => {
-                router.reload({ only: ['auth'] });
-            },
-        });
+    const handleCheckout = async (planKey: string) => {
+        setCheckoutProcessing(true);
+        try {
+            // Get CSRF token from meta tag
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+            const response = await fetch('/billing/checkout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Inertia': 'true',
+                    'X-Inertia-Version': document.querySelector('meta[name="inertia-version"]')?.getAttribute('content') || '',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': csrfToken,
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({ plan_key: planKey }),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.checkout_url) {
+                    window.location.href = data.checkout_url;
+                }
+            } else {
+                const data = await response.json();
+                checkoutForm.setError('plan_key', data.message || 'Failed to create checkout session');
+                setCheckoutProcessing(false);
+            }
+        } catch (error) {
+            checkoutForm.setError('plan_key', 'An error occurred while processing your request');
+            setCheckoutProcessing(false);
+        }
     };
 
     const handleCreditPurchase = (packKey: string) => {
@@ -71,13 +102,39 @@ export default function BillingSettings({
         });
     };
 
-    const handleBillingPortal = () => {
-        portalForm.post('/billing/portal', {
-            preserveScroll: true,
-            onSuccess: () => {
-                router.reload({ only: ['auth'] });
-            },
-        });
+    const handleBillingPortal = async () => {
+        setPortalProcessing(true);
+        try {
+            // Get CSRF token from meta tag
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+            const response = await fetch('/billing/portal', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Inertia': 'true',
+                    'X-Inertia-Version': document.querySelector('meta[name="inertia-version"]')?.getAttribute('content') || '',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': csrfToken,
+                },
+                credentials: 'same-origin',
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.portal_url) {
+                    window.location.href = data.portal_url;
+                }
+            } else {
+                const data = await response.json();
+                portalForm.setError('portal', data.message || 'Failed to create billing portal session');
+                setPortalProcessing(false);
+            }
+        } catch (error) {
+            portalForm.setError('portal', 'An error occurred while processing your request');
+            setPortalProcessing(false);
+        }
     };
 
     const handleCancel = () => {
@@ -179,7 +236,7 @@ export default function BillingSettings({
                                 variant="outline"
                                 size="sm"
                                 onClick={handleBillingPortal}
-                                disabled={portalForm.processing}
+                                disabled={portalProcessing}
                             >
                                 <ExternalLink className="mr-2 h-4 w-4" />
                                 Manage Billing
@@ -211,11 +268,6 @@ export default function BillingSettings({
 
                     <RadioGroup
                         value={currentPlan?.key || 'free'}
-                        onValueChange={(value) => {
-                            if (value !== currentPlan?.key) {
-                                handleCheckout(value);
-                            }
-                        }}
                         className="space-y-2"
                     >
                         {availablePlans.map((plan) => {
@@ -226,83 +278,89 @@ export default function BillingSettings({
                             return (
                                 <div
                                     key={plan.key}
-                                    className={`flex items-start space-x-3 rounded-lg border p-3 transition-colors ${
+                                    className={`flex items-center justify-between rounded-lg border p-3 transition-colors ${
                                         isCurrent
                                             ? 'border-primary bg-primary/5'
                                             : canSelect
-                                              ? 'cursor-pointer hover:bg-accent'
-                                              : 'opacity-50 cursor-not-allowed'
+                                              ? 'hover:bg-accent'
+                                              : 'opacity-50'
                                     }`}
-                                    onClick={() => {
-                                        if (canSelect) {
-                                            handleCheckout(plan.key);
-                                        }
-                                    }}
                                 >
-                                    <RadioGroupItem
-                                        value={plan.key}
-                                        id={plan.key}
-                                        disabled={!canSelect}
-                                        className="mt-0.5"
-                                    />
-                                    <div className="flex-1 space-y-1.5">
-                                        <div className="flex items-center justify-between">
-                                            <Label
-                                                htmlFor={plan.key}
-                                                className={`font-medium ${
-                                                    canSelect
-                                                        ? 'cursor-pointer'
-                                                        : ''
-                                                }`}
-                                            >
-                                                {plan.name}
-                                            </Label>
-                                            {isCurrent && (
-                                                <Badge
-                                                    variant="secondary"
-                                                    className="text-xs"
+                                    <div className="flex items-start space-x-3 flex-1">
+                                        <RadioGroupItem
+                                            value={plan.key}
+                                            id={plan.key}
+                                            disabled={!canSelect}
+                                            className="mt-0.5"
+                                        />
+                                        <div className="flex-1 space-y-1.5">
+                                            <div className="flex items-center gap-2">
+                                                <Label
+                                                    htmlFor={plan.key}
+                                                    className="font-medium"
                                                 >
-                                                    Current
-                                                </Badge>
-                                            )}
-                                        </div>
-                                        <p className="text-sm text-muted-foreground">
-                                            {plan.monthly_credits} credits per
-                                            month
-                                        </p>
-                                        {plan.features.length > 0 && (
-                                            <div className="flex flex-wrap gap-1.5 pt-0.5">
-                                                {plan.features
-                                                    .slice(0, 3)
-                                                    .map((feature) => (
-                                                        <span
-                                                            key={feature}
-                                                            className="inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs"
-                                                        >
-                                                            <Check className="h-3 w-3 text-green-600" />
-                                                            {feature
-                                                                .replace(/_/g, ' ')
-                                                                .replace(
-                                                                    /\b\w/g,
-                                                                    (l) =>
-                                                                        l.toUpperCase(),
-                                                                )}
-                                                        </span>
-                                                    ))}
-                                                {plan.features.length > 3 && (
-                                                    <span className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-                                                        +{plan.features.length - 3}
-                                                    </span>
+                                                    {plan.name}
+                                                </Label>
+                                                {isCurrent && (
+                                                    <Badge
+                                                        variant="secondary"
+                                                        className="text-xs"
+                                                    >
+                                                        Current
+                                                    </Badge>
                                                 )}
                                             </div>
-                                        )}
+                                            <p className="text-sm text-muted-foreground">
+                                                {plan.monthly_credits} credits per
+                                                month
+                                            </p>
+                                            {plan.features.length > 0 && (
+                                                <div className="flex flex-wrap gap-1.5 pt-0.5">
+                                                    {plan.features
+                                                        .slice(0, 3)
+                                                        .map((feature) => (
+                                                            <span
+                                                                key={feature}
+                                                                className="inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs"
+                                                            >
+                                                                <Check className="h-3 w-3 text-green-600" />
+                                                                {feature
+                                                                    .replace(/_/g, ' ')
+                                                                    .replace(
+                                                                        /\b\w/g,
+                                                                        (l) =>
+                                                                            l.toUpperCase(),
+                                                                    )}
+                                                            </span>
+                                                        ))}
+                                                    {plan.features.length > 3 && (
+                                                        <span className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                                                            +{plan.features.length - 3}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
+                                    {canSelect && (
+                                        <Button
+                                            size="sm"
+                                            onClick={() =>
+                                                handleCheckout(plan.key)
+                                            }
+                                            disabled={checkoutProcessing}
+                                            className="ml-4"
+                                        >
+                                            <ArrowUp className="mr-2 h-4 w-4" />
+                                            Upgrade
+                                        </Button>
+                                    )}
                                 </div>
                             );
                         })}
                     </RadioGroup>
 
-                    {checkoutForm.processing && (
+                    {checkoutProcessing && (
                         <p className="text-sm text-muted-foreground">
                             Processing...
                         </p>

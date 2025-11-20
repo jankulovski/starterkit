@@ -17,5 +17,5 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 // Stripe webhook (no auth required, but must be signed)
-Route::post('/stripe/webhook', [StripeWebhookController::class, 'handleWebhook'])->name('stripe.webhook');
+Route::post('/stripe/webhook', [StripeWebhookController::class, 'handleWebhook'])->name('cashier.webhook');
 
