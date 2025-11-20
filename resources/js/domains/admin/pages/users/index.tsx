@@ -302,7 +302,7 @@ export default function AdminUsersIndex({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Users - Admin" />
-            <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto rounded-xl p-4">
+            <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto p-6">
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl font-semibold">User Management</h1>

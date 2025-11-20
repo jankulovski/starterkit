@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import InputError from '@/components/input-error';
 import { ArrowLeft, Shield, Mail, Calendar, CheckCircle2, XCircle, Ban, CheckCircle } from 'lucide-react';
 import { Transition } from '@headlessui/react';
@@ -60,7 +61,7 @@ export default function AdminUsersShow({ user, success, error }: AdminUsersShowP
     return (
         <AppLayout breadcrumbs={breadcrumbs(user.id)}>
             <Head title={`User #${user.id} - Admin`} />
-            <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto rounded-xl p-4">
+            <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto p-6">
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl font-semibold">User Details</h1>
@@ -78,15 +79,15 @@ export default function AdminUsersShow({ user, success, error }: AdminUsersShowP
                 </div>
 
                 {success && (
-                    <div className="rounded-lg bg-green-50 p-4 text-sm text-green-800 dark:bg-green-900/20 dark:text-green-400">
-                        {success}
-                    </div>
+                    <Alert className="border-green-200 bg-green-50 text-green-800 dark:border-green-900/50 dark:bg-green-900/20 dark:text-green-400">
+                        <AlertDescription>{success}</AlertDescription>
+                    </Alert>
                 )}
 
                 {error && (
-                    <div className="rounded-lg bg-red-50 p-4 text-sm text-red-800 dark:bg-red-900/20 dark:text-red-400">
-                        {error}
-                    </div>
+                    <Alert variant="destructive">
+                        <AlertDescription>{error}</AlertDescription>
+                    </Alert>
                 )}
 
                 <div className="grid gap-6 md:grid-cols-2">

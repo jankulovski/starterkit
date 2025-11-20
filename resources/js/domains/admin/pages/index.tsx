@@ -30,7 +30,7 @@ export default function AdminIndex({ metrics }: AdminIndexProps) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Admin" />
-            <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto rounded-xl p-4">
+            <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto p-6">
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl font-semibold">Admin Overview</h1>
@@ -46,7 +46,7 @@ export default function AdminIndex({ metrics }: AdminIndexProps) {
                     </Link>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-3">
+                <div className="grid gap-6 md:grid-cols-3">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">
@@ -106,7 +106,7 @@ export default function AdminIndex({ metrics }: AdminIndexProps) {
                                 {metrics.recentSignups.map((user) => (
                                     <div
                                         key={user.id}
-                                        className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
+                                        className="flex items-center justify-between border-b border-border pb-4 last:border-0 last:pb-0"
                                     >
                                         <div>
                                             <p className="font-medium">{user.name}</p>

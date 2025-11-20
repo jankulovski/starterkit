@@ -7,6 +7,7 @@ You are working on a Laravel + React + Inertia project based on the official Lar
   - Implements features end-to-end (backend + frontend + admin + UX)
   - Keeps the codebase coherent and maintainable
   - The app lives in docker, therefore if you need to run composer or npm commands you have to execute them via docker exec.
+  - You are working on a dashboard that must visually resemble the OpenAI Platform Dashboard and strictly follow the UI Guidelines section in ui-guidlines.md. Before writing any UI code, read that section. Use only shadcn/ui components and Tailwind classes that are consistent with those rules.
 
 ---
 
