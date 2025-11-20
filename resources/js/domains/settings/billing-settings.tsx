@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
 import { type BillingData, type Plan, type CreditPack } from '@/types/billing';
-import { useForm } from '@inertiajs/react';
+import { useForm, router } from '@inertiajs/react';
 import {
     CreditCard,
     Check,
@@ -55,6 +55,9 @@ export default function BillingSettings({
         checkoutForm.setData('plan_key', planKey);
         checkoutForm.post('/billing/checkout', {
             preserveScroll: true,
+            onSuccess: () => {
+                router.reload({ only: ['auth'] });
+            },
         });
     };
 
@@ -62,12 +65,18 @@ export default function BillingSettings({
         creditPurchaseForm.setData('pack_key', packKey);
         creditPurchaseForm.post('/billing/credits/purchase', {
             preserveScroll: true,
+            onSuccess: () => {
+                router.reload({ only: ['auth'] });
+            },
         });
     };
 
     const handleBillingPortal = () => {
         portalForm.post('/billing/portal', {
             preserveScroll: true,
+            onSuccess: () => {
+                router.reload({ only: ['auth'] });
+            },
         });
     };
 
@@ -79,6 +88,9 @@ export default function BillingSettings({
         ) {
             cancelForm.post('/billing/cancel', {
                 preserveScroll: true,
+                onSuccess: () => {
+                    router.reload({ only: ['auth'] });
+                },
             });
         }
     };

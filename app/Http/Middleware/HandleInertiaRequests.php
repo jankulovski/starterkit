@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Domain\Billing\Services\CreditService;
+use App\Domain\Billing\Services\PlanService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -16,6 +18,12 @@ class HandleInertiaRequests extends Middleware
      * @var string
      */
     protected $rootView = 'app';
+
+    public function __construct(
+        protected PlanService $planService,
+        protected CreditService $creditService
+    ) {
+    }
 
     /**
      * Determines the current asset version.
@@ -40,6 +48,39 @@ class HandleInertiaRequests extends Middleware
 
         $user = $request->user();
 
+        // Build billing data if user is authenticated
+        $billingData = null;
+        if ($user) {
+            $currentPlan = $user->currentPlan();
+            $availablePlans = $this->planService->getAvailablePlans($user->current_plan_key);
+            $creditPacks = $this->creditService->getCreditPacks();
+
+            // Get subscription info if user has one
+            $subscription = null;
+            $nextBillingDate = null;
+            if ($user->subscribed()) {
+                $subscription = $user->subscription();
+                $nextBillingDate = $subscription->asStripeSubscription()->current_period_end ?? null;
+            }
+
+            $billingData = [
+                'currentPlan' => $currentPlan,
+                'availablePlans' => $availablePlans,
+                'creditPacks' => $creditPacks,
+                'subscription' => [
+                    'status' => $user->subscriptionStatus(),
+                    'stripe_id' => $subscription?->stripe_id,
+                    'stripe_status' => $subscription?->stripe_status,
+                    'next_billing_date' => $nextBillingDate ? date('c', $nextBillingDate) : null,
+                ],
+                'credits' => [
+                    'balance' => $user->creditsBalance(),
+                    'monthly_allocation' => $user->getMonthlyCredits(),
+                ],
+                'stripe_customer_id' => $user->stripe_id,
+            ];
+        }
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
@@ -51,15 +92,10 @@ class HandleInertiaRequests extends Middleware
                     'email' => $user->email,
                     'avatar' => $user->avatar ?? null,
                     'email_verified_at' => $user->email_verified_at?->toISOString(),
-                    'two_factor_enabled' => ! is_null($user->two_factor_confirmed_at),
                     'is_admin' => $user->is_admin ?? false,
                     'created_at' => $user->created_at->toISOString(),
                     'updated_at' => $user->updated_at->toISOString(),
-                    'billing' => [
-                        'credits_balance' => $user->creditsBalance(),
-                        'current_plan' => $user->currentPlan(),
-                        'subscription_status' => $user->subscriptionStatus(),
-                    ],
+                    'billing' => $billingData,
                 ] : null,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',

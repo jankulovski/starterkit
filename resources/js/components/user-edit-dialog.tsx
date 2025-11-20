@@ -257,7 +257,7 @@ export function UserEditDialog({ open, onOpenChange, user, onSuccess }: UserEdit
                                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                                 <span>Stripe Customer ID</span>
                                             </div>
-                                            <p className="text-sm font-mono text-xs break-all">
+                                            <p className="text-sm font-mono break-all">
                                                 {user.billing.stripe_customer_id}
                                             </p>
                                         </div>

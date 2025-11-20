@@ -57,39 +57,8 @@ interface SettingsDialogProps {
 
 // Billing Settings Wrapper Component
 function BillingSettingsWrapper() {
-    const [billingData, setBillingData] = React.useState<any>(null);
-    const [loading, setLoading] = React.useState(true);
-
-    React.useEffect(() => {
-        fetch('/settings/billing', {
-            headers: {
-                Accept: 'application/json',
-            },
-            credentials: 'same-origin',
-        })
-            .then((res) => {
-                if (!res.ok) {
-                    throw new Error('Failed to fetch billing data');
-                }
-                return res.json();
-            })
-            .then((data) => {
-                setBillingData(data);
-                setLoading(false);
-            })
-            .catch((error) => {
-                console.error('Error loading billing data:', error);
-                setLoading(false);
-            });
-    }, []);
-
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center py-8">
-                <p className="text-muted-foreground text-sm">Loading billing information...</p>
-            </div>
-        );
-    }
+    const { auth } = usePage<SharedData>().props;
+    const billingData = auth.user?.billing;
 
     if (!billingData) {
         return (

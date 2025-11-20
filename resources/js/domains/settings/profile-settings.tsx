@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { send } from '@/routes/verification';
 import { type SharedData } from '@/types';
 import { Transition } from '@headlessui/react';
-import { Form, Link, usePage } from '@inertiajs/react';
+import { Form, Link, router, usePage } from '@inertiajs/react';
 
 export default function ProfileSettings({
     mustVerifyEmail = false,
@@ -32,6 +32,9 @@ export default function ProfileSettings({
                     options={{
                         preserveScroll: true,
                     }}
+                    onSuccess={() => {
+                        router.reload({ only: ['auth'] });
+                    }}
                     className="space-y-6"
                 >
                     {({ processing, recentlySuccessful, errors }) => (
@@ -40,6 +43,7 @@ export default function ProfileSettings({
                                 <Label htmlFor="name">Name</Label>
 
                                 <Input
+                                    key={`name-${auth.user.updated_at}`}
                                     id="name"
                                     className="mt-1 block w-full"
                                     defaultValue={auth.user.name}

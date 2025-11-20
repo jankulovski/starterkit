@@ -7,7 +7,6 @@ import { DataTableFilters, type FilterConfig } from '@/components/data-table-fil
 import { UserEditDialog } from '@/components/user-edit-dialog';
 import { ArrowLeft } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
 
 interface User {
     id: number;
@@ -100,14 +99,19 @@ export default function AdminUsersIndex({
     // Fetch user data when dialog opens
     useEffect(() => {
         if (dialogOpen && selectedUserId && (!userData || userData.id !== selectedUserId)) {
-            axios.get(`/admin/users/${selectedUserId}`)
-                .then(response => {
-                    setUserData(response.data);
-                })
-                .catch(error => {
-                    console.error('Failed to fetch user details:', error);
-                    // Close dialog if fetch fails? Or show error
-                });
+            router.get(`/admin/users/${selectedUserId}`, {}, {
+                preserveState: true,
+                preserveScroll: true,
+                only: ['user'],
+                onSuccess: (page) => {
+                    if (page.props.user) {
+                        setUserData(page.props.user);
+                    }
+                },
+                onError: (errors) => {
+                    console.error('Failed to fetch user details:', errors);
+                },
+            });
         }
     }, [dialogOpen, selectedUserId]);
 
@@ -211,16 +215,17 @@ export default function AdminUsersIndex({
     };
 
     const handleDialogSuccess = () => {
-        // Reload table data
-        router.reload({ only: ['users'] });
-        
-        // Refetch user data to update the dialog (name, status, etc.)
-        if (selectedUserId) {
-            axios.get(`/admin/users/${selectedUserId}`)
-                .then(response => {
-                    setUserData(response.data);
-                });
-        }
+        // Reload table data and user data
+        router.reload({ 
+            only: ['users', 'user'],
+            preserveState: true,
+            preserveScroll: true,
+            onSuccess: (page) => {
+                if (page.props.user) {
+                    setUserData(page.props.user);
+                }
+            },
+        });
     };
 
     const getActionMenuItems = (user: User) => {
