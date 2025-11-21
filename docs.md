@@ -801,8 +801,6 @@ Primary user table with authentication and billing data.
 - `credits_balance` - Current credit balance (integer)
 - `current_plan_key` - Current plan identifier
 - `stripe_id` - Stripe customer ID (from Cashier)
-- `stripe_pm_type` - Stripe payment method type
-- `stripe_pm_last_four` - Last 4 digits of payment method
 - `trial_ends_at` - Trial expiration (from Cashier)
 - `two_factor_secret` - 2FA secret (not used, but column exists)
 - `two_factor_recovery_codes` - 2FA recovery codes (not used)

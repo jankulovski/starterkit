@@ -38,6 +38,79 @@ class CreditService
     }
 
     /**
+     * Reset user's credits to match their new plan allocation.
+     *
+     * BUSINESS LOGIC FIX: Preserves unused credits on upgrades.
+     * On upgrade: User keeps their unused credits + gets new plan allocation
+     * On downgrade: User gets only new plan allocation (unused credits lost)
+     * On lateral move: User gets new plan allocation (unused credits lost)
+     */
+    public function resetCreditsForPlan(User $user, string $planKey, ?string $oldPlanKey = null): void
+    {
+        $planService = app(PlanService::class);
+        $newPlan = $planService->getPlan($planKey);
+        $oldPlan = $oldPlanKey ? $planService->getPlan($oldPlanKey) : null;
+
+        if (! $newPlan) {
+            return;
+        }
+
+        $newPlanMonthlyCredits = $newPlan['monthly_credits'] ?? 0;
+        $oldPlanMonthlyCredits = $oldPlan ? ($oldPlan['monthly_credits'] ?? 0) : 0;
+        $currentBalance = $user->credits_balance;
+
+        // Determine if this is an upgrade (new plan gives more monthly credits)
+        $isUpgrade = $newPlanMonthlyCredits > $oldPlanMonthlyCredits;
+
+        if ($isUpgrade && $currentBalance > 0) {
+            // UPGRADE: Preserve unused credits and add new plan allocation
+            // User shouldn't lose credits they paid for
+            $finalBalance = $currentBalance + $newPlanMonthlyCredits;
+            $creditsAdded = $newPlanMonthlyCredits;
+
+            $user->credits_balance = $finalBalance;
+            $user->save();
+
+            // Log the credit addition
+            $user->creditTransactions()->create([
+                'type' => 'plan_upgrade',
+                'amount' => $creditsAdded,
+                'balance_after' => $finalBalance,
+                'description' => "Plan upgraded: {$oldPlanKey} → {$planKey} (preserved {$currentBalance} unused credits)",
+                'metadata' => [
+                    'old_plan_key' => $oldPlanKey,
+                    'new_plan_key' => $planKey,
+                    'preserved_credits' => $currentBalance,
+                    'new_plan_credits' => $creditsAdded,
+                    'final_balance' => $finalBalance,
+                ],
+            ]);
+        } else {
+            // DOWNGRADE or LATERAL: Reset to new plan allocation
+            $finalBalance = $newPlanMonthlyCredits;
+            $difference = $finalBalance - $currentBalance;
+
+            $user->credits_balance = $finalBalance;
+            $user->save();
+
+            // Log the credit adjustment
+            $user->creditTransactions()->create([
+                'type' => $isUpgrade ? 'plan_change' : 'plan_downgrade',
+                'amount' => $difference,
+                'balance_after' => $finalBalance,
+                'description' => "Credits reset for plan change: {$oldPlanKey} → {$planKey}",
+                'metadata' => [
+                    'old_plan_key' => $oldPlanKey,
+                    'new_plan_key' => $planKey,
+                    'old_credits' => $currentBalance,
+                    'new_credits' => $finalBalance,
+                    'credits_lost' => max(0, $currentBalance - $finalBalance),
+                ],
+            ]);
+        }
+    }
+
+    /**
      * Create a Stripe checkout session for a credit pack purchase.
      */
     public function createCreditPackCheckout(User $user, string $packKey): Session

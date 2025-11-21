@@ -48,21 +48,55 @@ class PlanService
     }
 
     /**
-     * Calculate upgrade price (proration).
-     * This is a simplified version - in production, you'd calculate based on Stripe's proration.
+     * Check if changing from one plan to another is an upgrade.
      */
-    public function calculateUpgradePrice(string $fromPlanKey, string $toPlanKey): ?int
+    public function isUpgrade(string $fromPlanKey, string $toPlanKey): bool
     {
         $fromPlan = $this->getPlan($fromPlanKey);
         $toPlan = $this->getPlan($toPlanKey);
 
         if (! $fromPlan || ! $toPlan) {
-            return null;
+            return false;
         }
 
-        // This is a placeholder - actual proration would be calculated via Stripe
-        // For now, return null to indicate it should be calculated by Stripe
-        return null;
+        // Use monthly credits as a proxy for tier level
+        return ($toPlan['monthly_credits'] ?? 0) > ($fromPlan['monthly_credits'] ?? 0);
+    }
+
+    /**
+     * Check if changing from one plan to another is a downgrade.
+     */
+    public function isDowngrade(string $fromPlanKey, string $toPlanKey): bool
+    {
+        $fromPlan = $this->getPlan($fromPlanKey);
+        $toPlan = $this->getPlan($toPlanKey);
+
+        if (! $fromPlan || ! $toPlan) {
+            return false;
+        }
+
+        // Use monthly credits as a proxy for tier level
+        return ($toPlan['monthly_credits'] ?? 0) < ($fromPlan['monthly_credits'] ?? 0);
+    }
+
+    /**
+     * Check if user can change to a specific plan.
+     */
+    public function canChangeToPlan(string $currentPlanKey, string $targetPlanKey): bool
+    {
+        // Can't change to the same plan
+        if ($currentPlanKey === $targetPlanKey) {
+            return false;
+        }
+
+        $targetPlan = $this->getPlan($targetPlanKey);
+
+        // Target plan must exist
+        if (! $targetPlan) {
+            return false;
+        }
+
+        return true;
     }
 }
 

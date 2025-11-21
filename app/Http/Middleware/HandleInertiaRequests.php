@@ -78,6 +78,7 @@ class HandleInertiaRequests extends Middleware
                     'monthly_allocation' => $user->getMonthlyCredits(),
                 ],
                 'stripe_customer_id' => $user->stripe_id,
+                'pendingPlanChange' => $user->pendingPlanChange(),
             ];
         }
 

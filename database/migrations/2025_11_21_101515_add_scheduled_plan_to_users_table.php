@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string('stripe_id')->nullable()->index();
-            $table->timestamp('trial_ends_at')->nullable();
+            $table->string('scheduled_plan_key')->nullable()->after('current_plan_key');
+            $table->timestamp('scheduled_plan_date')->nullable()->after('scheduled_plan_key');
         });
     }
 
@@ -23,14 +23,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropIndex([
-                'stripe_id',
-            ]);
-
-            $table->dropColumn([
-                'stripe_id',
-                'trial_ends_at',
-            ]);
+            $table->dropColumn(['scheduled_plan_key', 'scheduled_plan_date']);
         });
     }
 };

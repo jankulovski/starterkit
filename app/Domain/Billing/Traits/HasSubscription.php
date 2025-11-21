@@ -74,5 +74,45 @@ trait HasSubscription
 
         return 'active';
     }
+
+    /**
+     * Check if user has a pending plan change (scheduled downgrade).
+     */
+    public function hasPendingPlanChange(): bool
+    {
+        return ! is_null($this->scheduled_plan_key) && ! is_null($this->scheduled_plan_date);
+    }
+
+    /**
+     * Get pending plan change details.
+     */
+    public function pendingPlanChange(): ?array
+    {
+        if (! $this->hasPendingPlanChange()) {
+            return null;
+        }
+
+        $plans = config('plans.plans', []);
+        $plan = $plans[$this->scheduled_plan_key] ?? null;
+
+        if (! $plan) {
+            return null;
+        }
+
+        return [
+            'plan' => $plan,
+            'scheduled_date' => $this->scheduled_plan_date,
+        ];
+    }
+
+    /**
+     * Cancel a pending plan change.
+     */
+    public function cancelPendingPlanChange(): void
+    {
+        $this->scheduled_plan_key = null;
+        $this->scheduled_plan_date = null;
+        $this->save();
+    }
 }
 

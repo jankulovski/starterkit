@@ -29,6 +29,8 @@ class User extends Authenticatable
         'suspended_at',
         'credits_balance',
         'current_plan_key',
+        'scheduled_plan_key',
+        'scheduled_plan_date',
     ];
 
     /**
@@ -58,6 +60,7 @@ class User extends Authenticatable
             'suspended_at' => 'datetime',
             'trial_ends_at' => 'datetime',
             'credits_balance' => 'integer',
+            'scheduled_plan_date' => 'datetime',
         ];
     }
 
@@ -75,6 +78,25 @@ class User extends Authenticatable
     public function isSuspended(): bool
     {
         return ! is_null($this->suspended_at);
+    }
+
+    /**
+     * Check if the user has a pending plan change scheduled.
+     */
+    public function hasPendingPlanChange(): bool
+    {
+        return ! is_null($this->scheduled_plan_key) && ! is_null($this->scheduled_plan_date);
+    }
+
+    /**
+     * Cancel any pending plan changes.
+     */
+    public function cancelPendingPlanChange(): void
+    {
+        $this->update([
+            'scheduled_plan_key' => null,
+            'scheduled_plan_date' => null,
+        ]);
     }
 }
 
