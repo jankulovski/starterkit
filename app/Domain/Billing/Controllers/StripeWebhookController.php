@@ -70,6 +70,11 @@ class StripeWebhookController extends CashierController
 
         $user = User::where('stripe_id', $stripeCustomerId)->first();
 
+        // Sync billing period to avoid API calls on every request
+        if ($user) {
+            $this->syncBillingPeriod($user, $subscription);
+        }
+
         if (! $user) {
             Log::warning('Stripe webhook: User not found for subscription', [
                 'stripe_customer_id' => $stripeCustomerId,
@@ -120,6 +125,11 @@ class StripeWebhookController extends CashierController
         $stripeCustomerId = $subscription['customer'];
 
         $user = User::where('stripe_id', $stripeCustomerId)->first();
+
+        // Sync billing period to avoid API calls on every request
+        if ($user) {
+            $this->syncBillingPeriod($user, $subscription);
+        }
 
         if (! $user) {
             Log::warning('Stripe webhook: User not found for subscription update', [
@@ -562,9 +572,9 @@ class StripeWebhookController extends CashierController
     {
         $dashboardUrl = url('/dashboard');
 
-        // Get next billing date from subscription
+        // Get next billing date from database (avoid API call)
         $subscription = $user->subscription('default');
-        $nextBillingDate = $subscription ? $subscription->asStripeSubscription()->current_period_end : null;
+        $nextBillingDate = $subscription?->current_period_end?->timestamp;
         $nextBillingDateFormatted = $nextBillingDate ? date('F j, Y', $nextBillingDate) : 'N/A';
 
         \Illuminate\Support\Facades\Mail::send('emails.subscription-renewed', [
@@ -872,6 +882,34 @@ class StripeWebhookController extends CashierController
                 null, // May not have user_id if lookup failed
                 $payload
             );
+        }
+    }
+
+    /**
+     * Sync billing period from Stripe subscription to local database.
+     * This avoids expensive Stripe API calls on every request.
+     */
+    protected function syncBillingPeriod(User $user, array $stripeSubscription): void
+    {
+        $subscription = $user->subscription('default');
+
+        if (! $subscription) {
+            return;
+        }
+
+        $currentPeriodStart = $stripeSubscription['current_period_start'] ?? null;
+        $currentPeriodEnd = $stripeSubscription['current_period_end'] ?? null;
+
+        if ($currentPeriodStart && $currentPeriodEnd) {
+            $subscription->current_period_start = date('Y-m-d H:i:s', $currentPeriodStart);
+            $subscription->current_period_end = date('Y-m-d H:i:s', $currentPeriodEnd);
+            $subscription->save();
+
+            Log::debug('Synced billing period to database', [
+                'user_id' => $user->id,
+                'period_start' => $subscription->current_period_start,
+                'period_end' => $subscription->current_period_end,
+            ]);
         }
     }
 

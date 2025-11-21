@@ -60,7 +60,8 @@ class HandleInertiaRequests extends Middleware
             $nextBillingDate = null;
             if ($user->subscribed()) {
                 $subscription = $user->subscription();
-                $nextBillingDate = $subscription->asStripeSubscription()->current_period_end ?? null;
+                // Use database column instead of Stripe API call for performance
+                $nextBillingDate = $subscription->current_period_end?->timestamp ?? null;
             }
 
             $billingData = [
