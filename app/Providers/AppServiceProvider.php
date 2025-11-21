@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Domain\Users\Models\User;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Cashier\Cashier;
 use Stripe\StripeClient;
 
 class AppServiceProvider extends ServiceProvider
@@ -44,6 +46,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Configure Cashier to use the correct User model
+        Cashier::useCustomerModel(User::class);
     }
 }

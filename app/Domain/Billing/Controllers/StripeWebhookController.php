@@ -24,8 +24,11 @@ class StripeWebhookController extends CashierController
     /**
      * Handle customer subscription created.
      */
-    protected function handleCustomerSubscriptionCreated(array $payload): void
+    protected function handleCustomerSubscriptionCreated(array $payload)
     {
+        // Let Cashier create/update subscription records first
+        parent::handleCustomerSubscriptionCreated($payload);
+
         $subscription = $payload['data']['object'];
         $stripeCustomerId = $subscription['customer'];
 
@@ -35,7 +38,7 @@ class StripeWebhookController extends CashierController
             Log::warning('Stripe webhook: User not found for subscription', [
                 'stripe_customer_id' => $stripeCustomerId,
             ]);
-            return;
+            return $this->successMethod();
         }
 
         // Determine plan from subscription
@@ -55,13 +58,18 @@ class StripeWebhookController extends CashierController
                 );
             }
         }
+
+        return $this->successMethod();
     }
 
     /**
      * Handle customer subscription updated.
      */
-    protected function handleCustomerSubscriptionUpdated(array $payload): void
+    protected function handleCustomerSubscriptionUpdated(array $payload)
     {
+        // Let Cashier update subscription records first
+        parent::handleCustomerSubscriptionUpdated($payload);
+
         $subscription = $payload['data']['object'];
         $stripeCustomerId = $subscription['customer'];
 
@@ -71,7 +79,7 @@ class StripeWebhookController extends CashierController
             Log::warning('Stripe webhook: User not found for subscription update', [
                 'stripe_customer_id' => $stripeCustomerId,
             ]);
-            return;
+            return $this->successMethod();
         }
 
         // Determine plan from subscription
@@ -81,13 +89,18 @@ class StripeWebhookController extends CashierController
         if ($plan) {
             $user->update(['current_plan_key' => $plan['key']]);
         }
+
+        return $this->successMethod();
     }
 
     /**
      * Handle customer subscription deleted.
      */
-    protected function handleCustomerSubscriptionDeleted(array $payload): void
+    protected function handleCustomerSubscriptionDeleted(array $payload)
     {
+        // Let Cashier mark subscription as canceled first
+        parent::handleCustomerSubscriptionDeleted($payload);
+
         $subscription = $payload['data']['object'];
         $stripeCustomerId = $subscription['customer'];
 
@@ -97,11 +110,13 @@ class StripeWebhookController extends CashierController
             Log::warning('Stripe webhook: User not found for subscription deletion', [
                 'stripe_customer_id' => $stripeCustomerId,
             ]);
-            return;
+            return $this->successMethod();
         }
 
         // Revert to free plan
         $user->update(['current_plan_key' => 'free']);
+
+        return $this->successMethod();
     }
 
     /**
@@ -136,6 +151,48 @@ class StripeWebhookController extends CashierController
         }
 
         $user->addCredits($credits, 'purchase', "Purchased {$credits} credits via Stripe");
+    }
+
+    /**
+     * Handle invoice payment succeeded (for subscription renewals).
+     */
+    protected function handleInvoicePaymentSucceeded(array $payload)
+    {
+        $invoice = $payload['data']['object'];
+        $stripeCustomerId = $invoice['customer'];
+
+        // Only process subscription invoices, not one-time payments
+        if (! isset($invoice['subscription'])) {
+            return $this->successMethod();
+        }
+
+        $user = User::where('stripe_id', $stripeCustomerId)->first();
+
+        if (! $user) {
+            Log::warning('Stripe webhook: User not found for invoice payment', [
+                'stripe_customer_id' => $stripeCustomerId,
+                'invoice_id' => $invoice['id'],
+            ]);
+            return $this->successMethod();
+        }
+
+        // Determine plan from invoice line items (more efficient than fetching subscription)
+        $priceId = $invoice['lines']['data'][0]['price']['id'] ?? null;
+        $plan = $this->findPlanByPriceId($priceId);
+
+        if ($plan) {
+            // Add monthly credits on subscription renewal
+            $monthlyCredits = $plan['monthly_credits'] ?? 0;
+            if ($monthlyCredits > 0) {
+                $user->addCredits(
+                    $monthlyCredits,
+                    'subscription',
+                    "Monthly credits for {$plan['name']} plan (renewal)"
+                );
+            }
+        }
+
+        return $this->successMethod();
     }
 
     /**

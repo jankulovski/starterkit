@@ -8,8 +8,5 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// Schedule monthly credit reset (runs on the 1st of each month at midnight)
-Schedule::command('billing:reset-monthly-credits')
-    ->monthly()
-    ->at('00:00')
-    ->timezone('UTC');
+// Monthly credits are now handled via Stripe webhook (invoice.payment_succeeded)
+// The scheduled job has been removed as it's redundant
