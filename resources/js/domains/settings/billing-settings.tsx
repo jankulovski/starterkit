@@ -28,6 +28,7 @@ import {
     RotateCcw,
     CheckCircle2,
     Loader2,
+    AlertTriangle,
 } from 'lucide-react';
 import { Transition } from '@headlessui/react';
 
@@ -278,6 +279,7 @@ export default function BillingSettings({
 
     const isActiveSubscription = subscription.status === 'active';
     const isCanceled = subscription.status === 'canceled';
+    const isPastDue = subscription.stripe_status === 'past_due' || subscription.status === 'past_due';
 
     // Auto-dismiss success message after 5 seconds
     useEffect(() => {
@@ -320,6 +322,43 @@ export default function BillingSettings({
                     )}
                 </div>
             </Transition>
+
+            {/* Past Due Warning */}
+            {isPastDue && (
+                <Alert className="bg-red-50 border-red-300 border-2">
+                    <AlertTriangle className="h-5 w-5 text-red-600" />
+                    <AlertDescription>
+                        <div className="space-y-2">
+                            <p className="text-red-900 font-semibold">
+                                Payment Failed - Action Required
+                            </p>
+                            <p className="text-red-800 text-sm">
+                                Your subscription payment is past due. Please update your payment method to avoid losing access to your subscription features.
+                            </p>
+                            <div className="pt-2">
+                                <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={handleBillingPortal}
+                                    disabled={portalProcessing}
+                                >
+                                    {portalProcessing ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Loading...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <CreditCard className="mr-2 h-4 w-4" />
+                                            Update Payment Method
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
+                        </div>
+                    </AlertDescription>
+                </Alert>
+            )}
 
             {/* Current Plan & Credits Overview */}
             <div className="space-y-6">

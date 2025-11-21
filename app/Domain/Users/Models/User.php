@@ -31,6 +31,9 @@ class User extends Authenticatable
         'current_plan_key',
         'scheduled_plan_key',
         'scheduled_plan_date',
+        'payment_failure_count',
+        'last_payment_failure_at',
+        'payment_failure_notified_at',
     ];
 
     /**
@@ -61,6 +64,9 @@ class User extends Authenticatable
             'trial_ends_at' => 'datetime',
             'credits_balance' => 'integer',
             'scheduled_plan_date' => 'datetime',
+            'payment_failure_count' => 'integer',
+            'last_payment_failure_at' => 'datetime',
+            'payment_failure_notified_at' => 'datetime',
         ];
     }
 

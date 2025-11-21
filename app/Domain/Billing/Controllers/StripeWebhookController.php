@@ -290,6 +290,9 @@ class StripeWebhookController extends CashierController
             'event_id' => $eventId,
         ]);
 
+        // Send credit allocation confirmation email
+        $this->sendCreditsAllocatedEmail($user, $credits, 'purchase', "Thank you for your purchase!");
+
         // Mark session as processed (not event ID, to prevent duplicate with CheckoutController)
         if ($sessionId) {
             ProcessedWebhookEvent::markAsProcessed(
@@ -350,6 +353,19 @@ class StripeWebhookController extends CashierController
         $priceId = $invoice['lines']['data'][0]['price']['id'] ?? null;
         $plan = $this->findPlanByPriceId($priceId);
 
+        // Reset payment failure tracking on successful payment
+        if ($user->payment_failure_count > 0) {
+            $user->update([
+                'payment_failure_count' => 0,
+                'last_payment_failure_at' => null,
+                'payment_failure_notified_at' => null,
+            ]);
+
+            Log::info('Payment failure tracking reset after successful payment', [
+                'user_id' => $user->id,
+            ]);
+        }
+
         if ($plan) {
             $oldPlanKey = $user->current_plan_key;
 
@@ -391,6 +407,9 @@ class StripeWebhookController extends CashierController
                         'invoice_id' => $invoice['id'],
                         'event_id' => $eventId,
                     ]);
+
+                    // Send renewal confirmation email
+                    $this->sendSubscriptionRenewedEmail($user, $plan, $monthlyCredits);
                 }
             }
         }
@@ -422,11 +441,242 @@ class StripeWebhookController extends CashierController
             return;
         }
 
-        // Log the payment failure - in production, you might want to send a notification
+        // Update payment failure tracking
+        $user->increment('payment_failure_count');
+        $user->update(['last_payment_failure_at' => now()]);
+
+        $attemptNumber = $user->payment_failure_count;
+
+        // Log the payment failure
         Log::warning('Stripe webhook: Invoice payment failed', [
             'user_id' => $user->id,
             'invoice_id' => $invoice['id'],
+            'attempt_number' => $attemptNumber,
         ]);
+
+        // Send notification email (throttled to avoid spam)
+        // Only send if we haven't notified in the last 24 hours
+        $shouldNotify = ! $user->payment_failure_notified_at
+            || $user->payment_failure_notified_at->diffInHours(now()) >= 24;
+
+        if ($shouldNotify) {
+            $this->sendPaymentFailedEmail($user, $attemptNumber);
+            $user->update(['payment_failure_notified_at' => now()]);
+        }
+    }
+
+    /**
+     * Handle customer subscription past due.
+     * This fires when subscription enters past_due status after payment failures.
+     */
+    protected function handleCustomerSubscriptionPastDue(array $payload): void
+    {
+        $subscription = $payload['data']['object'];
+        $stripeCustomerId = $subscription['customer'];
+
+        $user = User::where('stripe_id', $stripeCustomerId)->first();
+
+        if (! $user) {
+            return;
+        }
+
+        // Determine plan from subscription
+        $priceId = $subscription['items']['data'][0]['price']['id'] ?? null;
+        $plan = $this->findPlanByPriceId($priceId);
+
+        Log::warning('Stripe webhook: Subscription past due', [
+            'user_id' => $user->id,
+            'subscription_id' => $subscription['id'],
+            'plan' => $plan['key'] ?? 'unknown',
+        ]);
+
+        // Send urgent notification
+        $this->sendSubscriptionPastDueEmail($user, $plan);
+    }
+
+    /**
+     * Send payment failed email notification.
+     */
+    protected function sendPaymentFailedEmail(User $user, int $attemptNumber): void
+    {
+        $updatePaymentUrl = route('billing.portal');
+
+        $plan = $this->planService->getPlan($user->current_plan_key);
+
+        \Illuminate\Support\Facades\Mail::send('emails.payment-failed', [
+            'userName' => $user->name,
+            'planName' => $plan['name'] ?? $user->current_plan_key,
+            'attemptNumber' => $attemptNumber,
+            'updatePaymentUrl' => $updatePaymentUrl,
+        ], function ($message) use ($user) {
+            $message->to($user->email)
+                ->subject('Payment Failed - Action Required');
+        });
+
+        Log::info('Payment failed email sent', [
+            'user_id' => $user->id,
+            'attempt_number' => $attemptNumber,
+        ]);
+    }
+
+    /**
+     * Send subscription past due email notification.
+     */
+    protected function sendSubscriptionPastDueEmail(User $user, ?array $plan): void
+    {
+        $updatePaymentUrl = route('billing.portal');
+
+        \Illuminate\Support\Facades\Mail::send('emails.subscription-past-due', [
+            'userName' => $user->name,
+            'planName' => $plan['name'] ?? $user->current_plan_key,
+            'updatePaymentUrl' => $updatePaymentUrl,
+        ], function ($message) use ($user) {
+            $message->to($user->email)
+                ->subject('⚠️ Action Required: Update Payment Method');
+        });
+
+        Log::info('Subscription past due email sent', [
+            'user_id' => $user->id,
+        ]);
+    }
+
+    /**
+     * Send subscription renewed email notification.
+     */
+    protected function sendSubscriptionRenewedEmail(User $user, array $plan, int $creditsAllocated): void
+    {
+        $dashboardUrl = url('/dashboard');
+
+        // Get next billing date from subscription
+        $subscription = $user->subscription('default');
+        $nextBillingDate = $subscription ? $subscription->asStripeSubscription()->current_period_end : null;
+        $nextBillingDateFormatted = $nextBillingDate ? date('F j, Y', $nextBillingDate) : 'N/A';
+
+        \Illuminate\Support\Facades\Mail::send('emails.subscription-renewed', [
+            'userName' => $user->name,
+            'planName' => $plan['name'],
+            'creditsAllocated' => $creditsAllocated,
+            'nextBillingDate' => $nextBillingDateFormatted,
+            'dashboardUrl' => $dashboardUrl,
+        ], function ($message) use ($user) {
+            $message->to($user->email)
+                ->subject('Subscription Renewed Successfully');
+        });
+
+        Log::info('Subscription renewed email sent', [
+            'user_id' => $user->id,
+            'plan' => $plan['key'],
+        ]);
+    }
+
+    /**
+     * Send credits allocated email notification.
+     */
+    protected function sendCreditsAllocatedEmail(User $user, int $creditsAmount, string $source, string $description = ''): void
+    {
+        $dashboardUrl = url('/dashboard');
+
+        // Format source for display
+        $sourceDisplay = match($source) {
+            'subscription' => 'Monthly Subscription',
+            'purchase' => 'Credit Purchase',
+            'bonus' => 'Bonus Credits',
+            default => ucfirst($source),
+        };
+
+        \Illuminate\Support\Facades\Mail::send('emails.credits-allocated', [
+            'userName' => $user->name,
+            'creditsAmount' => $creditsAmount,
+            'source' => $sourceDisplay,
+            'newBalance' => $user->credits_balance,
+            'description' => $description,
+            'dashboardUrl' => $dashboardUrl,
+        ], function ($message) use ($user) {
+            $message->to($user->email)
+                ->subject('Credits Added to Your Account');
+        });
+
+        Log::info('Credits allocated email sent', [
+            'user_id' => $user->id,
+            'credits' => $creditsAmount,
+        ]);
+    }
+
+    /**
+     * Handle customer subscription unpaid (after all retries failed).
+     * This is the final state before subscription is canceled.
+     */
+    protected function handleCustomerSubscriptionUnpaid(array $payload): void
+    {
+        $subscription = $payload['data']['object'];
+        $stripeCustomerId = $subscription['customer'];
+
+        $user = User::where('stripe_id', $stripeCustomerId)->first();
+
+        if (! $user) {
+            return;
+        }
+
+        Log::error('Stripe webhook: Subscription unpaid - final failure', [
+            'user_id' => $user->id,
+            'subscription_id' => $subscription['id'],
+        ]);
+
+        // The subscription will be canceled automatically by Stripe
+        // We just log this critical event
+        // The customer.subscription.deleted webhook will handle the cleanup
+    }
+
+    /**
+     * Handle customer subscription incomplete (initial payment failed).
+     * This happens when the first payment for a subscription fails.
+     */
+    protected function handleCustomerSubscriptionIncomplete(array $payload): void
+    {
+        $subscription = $payload['data']['object'];
+        $stripeCustomerId = $subscription['customer'];
+
+        $user = User::where('stripe_id', $stripeCustomerId)->first();
+
+        if (! $user) {
+            return;
+        }
+
+        Log::warning('Stripe webhook: Subscription incomplete - initial payment failed', [
+            'user_id' => $user->id,
+            'subscription_id' => $subscription['id'],
+        ]);
+
+        // Don't downgrade plan yet - give user chance to fix payment
+        // Stripe will automatically retry or expire the subscription
+    }
+
+    /**
+     * Handle customer subscription incomplete expired.
+     * This happens when the initial payment fails and all retries are exhausted.
+     */
+    protected function handleCustomerSubscriptionIncompleteExpired(array $payload): void
+    {
+        $subscription = $payload['data']['object'];
+        $stripeCustomerId = $subscription['customer'];
+
+        $user = User::where('stripe_id', $stripeCustomerId)->first();
+
+        if (! $user) {
+            return;
+        }
+
+        Log::warning('Stripe webhook: Subscription incomplete expired', [
+            'user_id' => $user->id,
+            'subscription_id' => $subscription['id'],
+        ]);
+
+        // Revert to free plan since subscription never activated
+        $oldPlanKey = $user->current_plan_key;
+        $user->update(['current_plan_key' => 'free']);
+
+        // Reset credits
+        $this->creditService->resetCreditsForPlan($user, 'free', $oldPlanKey);
     }
 
     /**
