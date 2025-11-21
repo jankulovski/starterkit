@@ -7,7 +7,6 @@ import { DataTableFilters, type FilterConfig } from '@/components/data-table-fil
 import { UserEditDialog } from '@/components/user-edit-dialog';
 import { ArrowLeft } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
 
 interface User {
     id: number;
@@ -97,19 +96,6 @@ export default function AdminUsersIndex({
         }
     }, [props.user]);
 
-    // Fetch user data when dialog opens (using API to avoid URL change)
-    useEffect(() => {
-        if (dialogOpen && selectedUserId && (!userData || userData.id !== selectedUserId)) {
-            axios.get(`/admin/users/${selectedUserId}/api`)
-                .then(response => {
-                    setUserData(response.data);
-                })
-                .catch(error => {
-                    console.error('Failed to fetch user details:', error);
-                });
-        }
-    }, [dialogOpen, selectedUserId]);
-
     // Debounce search
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -176,11 +162,20 @@ export default function AdminUsersIndex({
         switch (action) {
             case 'view':
                 setSelectedUserId(row.id);
-                // Clear current user data if it's different to show loading state or empty
+                // Clear current user data if it's different to show loading state
                 if (userData && userData.id !== row.id) {
                     setUserData(null);
                 }
-                setDialogOpen(true);
+                // Visit the user show route but preserve the current URL
+                router.visit(`/admin/users/${row.id}`, {
+                    only: ['user'],
+                    preserveState: true,
+                    preserveScroll: true,
+                    preserveUrl: true,  // Keep URL as /admin/users
+                    onSuccess: () => {
+                        setDialogOpen(true);
+                    }
+                });
                 break;
             case 'suspend':
                 router.post(`/admin/users/${row.id}/suspend`, {}, {
@@ -210,21 +205,17 @@ export default function AdminUsersIndex({
     };
 
     const handleDialogSuccess = () => {
-        // Reload the users list
-        router.reload({
-            only: ['users'],
-            preserveScroll: true,
-        });
-
-        // If a user dialog is open, fetch updated user data (using API to avoid URL change)
+        // Reload both users list and the selected user data
         if (selectedUserId) {
-            axios.get(`/admin/users/${selectedUserId}/api`)
-                .then(response => {
-                    setUserData(response.data);
-                })
-                .catch(error => {
-                    console.error('Failed to fetch updated user details:', error);
-                });
+            router.reload({
+                only: ['users', 'user'],
+                preserveScroll: true,
+            });
+        } else {
+            router.reload({
+                only: ['users'],
+                preserveScroll: true,
+            });
         }
     };
 
