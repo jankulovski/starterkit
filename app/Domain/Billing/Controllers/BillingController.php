@@ -439,12 +439,76 @@ class BillingController extends Controller
     }
 
     /**
+     * Preview downgrade impact.
+     * Shows user what will happen if they downgrade (credits lost, new features, etc.)
+     */
+    public function previewDowngrade(Request $request)
+    {
+        $validPlanKeys = array_keys(config('plans.plans'));
+
+        $request->validate([
+            'plan_key' => ['required', 'string', Rule::in($validPlanKeys)],
+        ]);
+
+        $user = $request->user();
+        $currentPlan = $this->planService->getPlan($user->current_plan_key);
+        $targetPlan = $this->planService->getPlan($request->plan_key);
+
+        if (! $targetPlan) {
+            return response()->json(['error' => 'Invalid plan'], 400);
+        }
+
+        // Calculate credit impact
+        $currentCredits = $user->credits_balance;
+        $newPlanCredits = $targetPlan['monthly_credits'] ?? 0;
+        $creditsLost = max(0, $currentCredits - $newPlanCredits);
+
+        // Get subscription period end date
+        $subscription = $user->subscription('default');
+        $effectiveDate = null;
+
+        if ($subscription && $subscription->valid()) {
+            try {
+                $stripeSubscription = $subscription->asStripeSubscription();
+                $effectiveDate = \Carbon\Carbon::createFromTimestamp($stripeSubscription->current_period_end)
+                    ->toIso8601String();
+            } catch (\Exception $e) {
+                // Fallback to end of current month if can't get Stripe data
+                $effectiveDate = now()->endOfMonth()->toIso8601String();
+            }
+        }
+
+        return response()->json([
+            'current_plan' => [
+                'key' => $currentPlan['key'] ?? $user->current_plan_key,
+                'name' => $currentPlan['name'] ?? $user->current_plan_key,
+                'tier' => $currentPlan['tier'] ?? 0,
+            ],
+            'target_plan' => [
+                'key' => $targetPlan['key'],
+                'name' => $targetPlan['name'],
+                'tier' => $targetPlan['tier'] ?? 0,
+                'monthly_credits' => $newPlanCredits,
+            ],
+            'credits' => [
+                'current_balance' => $currentCredits,
+                'new_plan_allocation' => $newPlanCredits,
+                'will_be_lost' => $creditsLost,
+            ],
+            'effective_date' => $effectiveDate,
+            'is_downgrade' => $this->planService->isDowngrade($user->current_plan_key, $request->plan_key),
+        ]);
+    }
+
+    /**
      * Purchase a credit pack.
      */
     public function purchaseCredits(Request $request)
     {
+        $validPackKeys = array_keys(config('plans.credit_packs', []));
+
         $request->validate([
-            'pack_key' => ['required', 'string'],
+            'pack_key' => ['required', 'string', \Illuminate\Validation\Rule::in($validPackKeys)],
         ]);
 
         try {

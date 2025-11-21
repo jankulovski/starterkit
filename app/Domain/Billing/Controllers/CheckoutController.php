@@ -101,8 +101,24 @@ class CheckoutController extends Controller
             // Handle credit pack checkout
             if ($session->metadata->type === 'credit_pack' && isset($session->metadata->credits)) {
                 $credits = (int) $session->metadata->credits;
+
+                // Get charge_id from payment_intent for refund tracking
+                $chargeId = null;
+                if ($session->payment_intent) {
+                    try {
+                        $paymentIntent = $this->stripe->paymentIntents->retrieve($session->payment_intent);
+                        $chargeId = $paymentIntent->charges->data[0]->id ?? null;
+                    } catch (\Exception $e) {
+                        Log::warning('Failed to retrieve charge ID from payment intent', [
+                            'payment_intent' => $session->payment_intent,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+
                 $user->addCredits($credits, 'purchase', "Purchased {$credits} credits via Stripe", [
                     'session_id' => $sessionId,
+                    'charge_id' => $chargeId,
                     'amount_paid' => $session->amount_total,
                     'currency' => $session->currency,
                 ]);
@@ -112,6 +128,7 @@ class CheckoutController extends Controller
                     'credits' => $credits,
                     'amount_paid' => $session->amount_total,
                     'session_id' => $sessionId,
+                    'charge_id' => $chargeId,
                 ]);
             }
 

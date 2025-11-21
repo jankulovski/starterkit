@@ -7,6 +7,7 @@ import { DataTableFilters, type FilterConfig } from '@/components/data-table-fil
 import { UserEditDialog } from '@/components/user-edit-dialog';
 import { ArrowLeft } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
 
 interface User {
     id: number;
@@ -96,22 +97,16 @@ export default function AdminUsersIndex({
         }
     }, [props.user]);
 
-    // Fetch user data when dialog opens
+    // Fetch user data when dialog opens (using API to avoid URL change)
     useEffect(() => {
         if (dialogOpen && selectedUserId && (!userData || userData.id !== selectedUserId)) {
-            router.get(`/admin/users/${selectedUserId}`, {}, {
-                preserveState: true,
-                preserveScroll: true,
-                only: ['user'],
-                onSuccess: (page) => {
-                    if (page.props.user) {
-                        setUserData(page.props.user);
-                    }
-                },
-                onError: (errors) => {
-                    console.error('Failed to fetch user details:', errors);
-                },
-            });
+            axios.get(`/admin/users/${selectedUserId}/api`)
+                .then(response => {
+                    setUserData(response.data);
+                })
+                .catch(error => {
+                    console.error('Failed to fetch user details:', error);
+                });
         }
     }, [dialogOpen, selectedUserId]);
 
@@ -215,17 +210,22 @@ export default function AdminUsersIndex({
     };
 
     const handleDialogSuccess = () => {
-        // Reload table data and user data
-        router.reload({ 
-            only: ['users', 'user'],
-            preserveState: true,
+        // Reload the users list
+        router.reload({
+            only: ['users'],
             preserveScroll: true,
-            onSuccess: (page) => {
-                if (page.props.user) {
-                    setUserData(page.props.user);
-                }
-            },
         });
+
+        // If a user dialog is open, fetch updated user data (using API to avoid URL change)
+        if (selectedUserId) {
+            axios.get(`/admin/users/${selectedUserId}/api`)
+                .then(response => {
+                    setUserData(response.data);
+                })
+                .catch(error => {
+                    console.error('Failed to fetch updated user details:', error);
+                });
+        }
     };
 
     const getActionMenuItems = (user: User) => {
@@ -348,7 +348,7 @@ export default function AdminUsersIndex({
                 />
 
                 <DataTable
-                    data={users.data}
+                    data={users?.data || []}
                     columns={columns}
                     getRowId={(row) => row.id}
                     onRowAction={handleRowAction}
@@ -361,14 +361,14 @@ export default function AdminUsersIndex({
                             ? "No users found. Try adjusting your search criteria."
                             : "No users found"
                     }
-                    pagination={{
+                    pagination={users ? {
                         currentPage: users.current_page,
                         lastPage: users.last_page,
                         perPage: users.per_page,
                         total: users.total,
                         links: users.links,
                         onPageChange: handlePageChange,
-                    }}
+                    } : undefined}
                 />
 
                 <UserEditDialog

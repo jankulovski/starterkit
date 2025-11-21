@@ -5,6 +5,7 @@ return [
         'free' => [
             'key' => 'free',
             'name' => 'Free',
+            'tier' => 0,
             'type' => 'free',
             'stripe_price_id' => null,
             'monthly_credits' => 0,
@@ -13,6 +14,7 @@ return [
         'pro' => [
             'key' => 'pro',
             'name' => 'Pro',
+            'tier' => 1,
             'type' => 'paid',
             'interval' => 'monthly',
             'stripe_price_id' => env('STRIPE_PRICE_PRO_MONTHLY'),
@@ -22,6 +24,7 @@ return [
         'business' => [
             'key' => 'business',
             'name' => 'Business',
+            'tier' => 2,
             'type' => 'paid',
             'interval' => 'monthly',
             'stripe_price_id' => env('STRIPE_PRICE_BUSINESS_MONTHLY'),

@@ -3,7 +3,7 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, Shield, UserPlus, ArrowRight } from 'lucide-react';
+import { Users, Shield, UserPlus, ArrowRight, DollarSign, CreditCard, Coins, TrendingUp } from 'lucide-react';
 
 interface AdminIndexProps {
     metrics: {
@@ -16,6 +16,12 @@ interface AdminIndexProps {
             created_at: string;
             is_admin: boolean;
         }>;
+        billing: {
+            mrr: number;
+            arr: number;
+            activeSubscriptions: number;
+            creditsAllocated: number;
+        };
     };
 }
 
@@ -38,59 +44,137 @@ export default function AdminIndex({ metrics }: AdminIndexProps) {
                             Manage users and monitor system activity
                         </p>
                     </div>
-                    <Link href="/admin/users">
-                        <Button>
-                            Manage Users
-                            <ArrowRight className="ml-2 h-4 w-4" />
-                        </Button>
-                    </Link>
+                    <div className="flex items-center gap-3">
+                        <Link href="/admin/billing/metrics">
+                            <Button variant="outline">
+                                View Billing Details
+                                <ArrowRight className="ml-2 h-4 w-4" />
+                            </Button>
+                        </Link>
+                        <Link href="/admin/users">
+                            <Button>
+                                Manage Users
+                                <ArrowRight className="ml-2 h-4 w-4" />
+                            </Button>
+                        </Link>
+                    </div>
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-3">
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                                Total Users
-                            </CardTitle>
-                            <Users className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{metrics.totalUsers}</div>
-                            <p className="text-xs text-muted-foreground">
-                                All registered users
-                            </p>
-                        </CardContent>
-                    </Card>
+                {/* User Metrics */}
+                <div>
+                    <h2 className="text-lg font-semibold mb-4">User Metrics</h2>
+                    <div className="grid gap-6 md:grid-cols-3">
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">
+                                    Total Users
+                                </CardTitle>
+                                <Users className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{metrics.totalUsers}</div>
+                                <p className="text-xs text-muted-foreground">
+                                    All registered users
+                                </p>
+                            </CardContent>
+                        </Card>
 
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                                Administrators
-                            </CardTitle>
-                            <Shield className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{metrics.adminCount}</div>
-                            <p className="text-xs text-muted-foreground">
-                                Users with admin privileges
-                            </p>
-                        </CardContent>
-                    </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">
+                                    Administrators
+                                </CardTitle>
+                                <Shield className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{metrics.adminCount}</div>
+                                <p className="text-xs text-muted-foreground">
+                                    Users with admin privileges
+                                </p>
+                            </CardContent>
+                        </Card>
 
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                                Recent Signups
-                            </CardTitle>
-                            <UserPlus className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{metrics.recentSignups.length}</div>
-                            <p className="text-xs text-muted-foreground">
-                                Latest 5 registrations
-                            </p>
-                        </CardContent>
-                    </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">
+                                    Recent Signups
+                                </CardTitle>
+                                <UserPlus className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{metrics.recentSignups.length}</div>
+                                <p className="text-xs text-muted-foreground">
+                                    Latest 5 registrations
+                                </p>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
+
+                {/* Billing Metrics */}
+                <div>
+                    <h2 className="text-lg font-semibold mb-4">Billing Metrics</h2>
+                    <div className="grid gap-6 md:grid-cols-4">
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">
+                                    MRR
+                                </CardTitle>
+                                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">${metrics.billing.mrr.toFixed(2)}</div>
+                                <p className="text-xs text-muted-foreground">
+                                    Monthly recurring revenue
+                                </p>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">
+                                    ARR
+                                </CardTitle>
+                                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">${metrics.billing.arr.toFixed(2)}</div>
+                                <p className="text-xs text-muted-foreground">
+                                    Annual recurring revenue
+                                </p>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">
+                                    Active Subscriptions
+                                </CardTitle>
+                                <CreditCard className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{metrics.billing.activeSubscriptions}</div>
+                                <p className="text-xs text-muted-foreground">
+                                    Currently paying users
+                                </p>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">
+                                    Credits Allocated
+                                </CardTitle>
+                                <Coins className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{metrics.billing.creditsAllocated.toLocaleString()}</div>
+                                <p className="text-xs text-muted-foreground">
+                                    This month
+                                </p>
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
 
                 {metrics.recentSignups.length > 0 && (

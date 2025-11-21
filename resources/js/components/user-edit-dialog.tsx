@@ -18,6 +18,7 @@ import { UserInfo } from '@/components/user-info';
 import { type User as UserType } from '@/types';
 import { Mail, Calendar, CheckCircle2, XCircle, Ban, CheckCircle, CreditCard, Coins } from 'lucide-react';
 import { Transition } from '@headlessui/react';
+import { CreditAdjustmentDialog } from '@/domains/admin/components/CreditAdjustmentDialog';
 
 interface User extends UserType {
     is_admin: boolean;
@@ -46,6 +47,7 @@ interface UserEditDialogProps {
 }
 
 export function UserEditDialog({ open, onOpenChange, user, onSuccess }: UserEditDialogProps) {
+    const [showCreditDialog, setShowCreditDialog] = React.useState(false);
     const { data, setData, patch, processing, errors, recentlySuccessful } = useForm({
         name: user?.name || '',
         is_admin: user?.is_admin || false,
@@ -218,6 +220,15 @@ export function UserEditDialog({ open, onOpenChange, user, onSuccess }: UserEdit
                                         <p className="text-xs text-muted-foreground">
                                             {user.billing.current_plan?.monthly_credits || 0} credits/month included
                                         </p>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setShowCreditDialog(true)}
+                                            className="mt-2"
+                                        >
+                                            Adjust Credits
+                                        </Button>
                                     </div>
 
                                     {user.billing.subscription_status && user.billing.subscription_status !== 'none' && (
@@ -355,6 +366,25 @@ export function UserEditDialog({ open, onOpenChange, user, onSuccess }: UserEdit
                     </div>
                 </div>
             </DialogContent>
+
+            {/* Credit Adjustment Dialog */}
+            {user.billing && (
+                <CreditAdjustmentDialog
+                    open={showCreditDialog}
+                    onOpenChange={setShowCreditDialog}
+                    user={{
+                        id: user.id,
+                        name: user.name,
+                        email: user.email,
+                        credits_balance: user.billing.credits_balance,
+                    }}
+                    onSuccess={() => {
+                        if (onSuccess) {
+                            onSuccess();
+                        }
+                    }}
+                />
+            )}
         </Dialog>
     );
 }

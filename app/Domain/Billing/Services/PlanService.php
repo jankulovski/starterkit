@@ -59,8 +59,11 @@ class PlanService
             return false;
         }
 
-        // Use monthly credits as a proxy for tier level
-        return ($toPlan['monthly_credits'] ?? 0) > ($fromPlan['monthly_credits'] ?? 0);
+        // Use explicit tier field for reliable comparison
+        $fromTier = $fromPlan['tier'] ?? 0;
+        $toTier = $toPlan['tier'] ?? 0;
+
+        return $toTier > $fromTier;
     }
 
     /**
@@ -75,8 +78,11 @@ class PlanService
             return false;
         }
 
-        // Use monthly credits as a proxy for tier level
-        return ($toPlan['monthly_credits'] ?? 0) < ($fromPlan['monthly_credits'] ?? 0);
+        // Use explicit tier field for reliable comparison
+        $fromTier = $fromPlan['tier'] ?? 0;
+        $toTier = $toPlan['tier'] ?? 0;
+
+        return $toTier < $fromTier;
     }
 
     /**

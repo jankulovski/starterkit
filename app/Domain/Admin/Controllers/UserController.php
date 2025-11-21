@@ -89,6 +89,32 @@ class UserController extends Controller
      */
     public function show(Request $request, User $user)
     {
+        $userData = $this->getUserData($user);
+
+        // For Inertia requests, return user data as prop
+        if ($request->header('X-Inertia')) {
+            return Inertia::render('domains/admin/pages/users/index', [
+                'user' => $userData,
+            ]);
+        }
+
+        // For direct URL visits, redirect to index page
+        return redirect()->route('admin.users.index');
+    }
+
+    /**
+     * Get user data as JSON (API endpoint for fetching user details without navigation).
+     */
+    public function apiShow(User $user)
+    {
+        return response()->json($this->getUserData($user));
+    }
+
+    /**
+     * Build user data array with all details.
+     */
+    private function getUserData(User $user): array
+    {
         $subscription = null;
         $nextBillingDate = null;
         if ($user->subscribed()) {
@@ -96,7 +122,7 @@ class UserController extends Controller
             $nextBillingDate = $subscription->asStripeSubscription()->current_period_end ?? null;
         }
 
-        $userData = [
+        return [
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
@@ -114,16 +140,6 @@ class UserController extends Controller
                 'stripe_subscription_id' => $subscription?->stripe_id,
             ],
         ];
-
-        // For Inertia requests, return user data as prop
-        if ($request->header('X-Inertia')) {
-            return Inertia::render('domains/admin/pages/users/index', [
-                'user' => $userData,
-            ]);
-        }
-
-        // For direct URL visits, redirect to index page
-        return redirect()->route('admin.users.index');
     }
 
     /**

@@ -9,6 +9,7 @@ import {
 } from '@/hooks/use-settings-dialog';
 import { type BreadcrumbItem } from '@/types';
 import { type PropsWithChildren } from 'react';
+import { Toaster } from 'sonner';
 
 function AppSidebarLayoutContent({
     children,
@@ -30,6 +31,7 @@ function AppSidebarLayoutContent({
                 onOpenChange={setOpen}
                 defaultSection={activeSection}
             />
+            <Toaster />
         </>
     );
 }

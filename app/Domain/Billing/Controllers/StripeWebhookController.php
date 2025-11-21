@@ -285,8 +285,23 @@ class StripeWebhookController extends CashierController
             return;
         }
 
+        // Get charge_id from payment_intent for refund tracking
+        $chargeId = null;
+        if ($session['payment_intent'] ?? null) {
+            try {
+                $paymentIntent = $this->stripe->paymentIntents->retrieve($session['payment_intent']);
+                $chargeId = $paymentIntent->charges->data[0]->id ?? null;
+            } catch (\Exception $e) {
+                Log::warning('Failed to retrieve charge ID from payment intent in webhook', [
+                    'payment_intent' => $session['payment_intent'],
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
         $user->addCredits($credits, 'purchase', "Purchased {$credits} credits via Stripe (webhook)", [
             'session_id' => $sessionId,
+            'charge_id' => $chargeId,
             'event_id' => $eventId,
         ]);
 
@@ -680,6 +695,187 @@ class StripeWebhookController extends CashierController
     }
 
     /**
+     * Handle charge refunded.
+     * Reverses credits if the refund was for a credit pack purchase.
+     */
+    protected function handleChargeRefunded(array $payload): void
+    {
+        $eventId = $payload['id'] ?? null;
+        $charge = $payload['data']['object'];
+        $chargeId = $charge['id'] ?? null;
+
+        // IDEMPOTENCY CHECK: Prevent duplicate processing
+        if ($eventId && ProcessedWebhookEvent::isProcessed($eventId)) {
+            Log::info('Webhook event already processed (charge.refunded)', [
+                'event_id' => $eventId,
+                'charge_id' => $chargeId,
+            ]);
+            return;
+        }
+
+        $stripeCustomerId = $charge['customer'] ?? null;
+
+        if (! $stripeCustomerId) {
+            Log::warning('Stripe webhook: No customer found for refunded charge', [
+                'charge_id' => $chargeId,
+            ]);
+            return;
+        }
+
+        $user = User::where('stripe_id', $stripeCustomerId)->first();
+
+        if (! $user) {
+            Log::warning('Stripe webhook: User not found for refunded charge', [
+                'stripe_customer_id' => $stripeCustomerId,
+                'charge_id' => $chargeId,
+            ]);
+            return;
+        }
+
+        // Find the original credit transaction for this charge
+        // Check if this refund is for a credit pack purchase
+        $creditTransaction = \App\Domain\Billing\Models\CreditTransaction::where('user_id', $user->id)
+            ->where('type', 'purchase')
+            ->where('metadata->charge_id', $chargeId)
+            ->first();
+
+        if ($creditTransaction) {
+            $creditsToReverse = abs($creditTransaction->amount);
+
+            // Only reverse if user has enough credits
+            if ($user->credits_balance >= $creditsToReverse) {
+                $user->chargeCredits(
+                    $creditsToReverse,
+                    'refund',
+                    "Refund: Credit pack purchase reversed",
+                    [
+                        'charge_id' => $chargeId,
+                        'original_transaction_id' => $creditTransaction->id,
+                        'event_id' => $eventId,
+                    ]
+                );
+
+                Log::warning('Credits reversed due to refund', [
+                    'user_id' => $user->id,
+                    'credits_reversed' => $creditsToReverse,
+                    'charge_id' => $chargeId,
+                    'new_balance' => $user->fresh()->credits_balance,
+                ]);
+            } else {
+                // User doesn't have enough credits to reverse - flag for manual review
+                Log::error('Cannot reverse credits: insufficient balance', [
+                    'user_id' => $user->id,
+                    'user_email' => $user->email,
+                    'credits_to_reverse' => $creditsToReverse,
+                    'current_balance' => $user->credits_balance,
+                    'charge_id' => $chargeId,
+                    'requires_manual_review' => true,
+                ]);
+
+                // Still mark as processed to avoid retry loop
+            }
+        } else {
+            // Refund is for subscription payment, not credit pack
+            Log::info('Refund received but no credit pack transaction found (likely subscription refund)', [
+                'user_id' => $user->id,
+                'charge_id' => $chargeId,
+            ]);
+        }
+
+        // Mark event as processed
+        if ($eventId) {
+            ProcessedWebhookEvent::markAsProcessed(
+                $eventId,
+                'charge.refunded',
+                $user->id,
+                $payload
+            );
+        }
+    }
+
+    /**
+     * Handle charge dispute created.
+     * Logs disputes for investigation without immediately reversing credits.
+     */
+    protected function handleChargeDisputeCreated(array $payload): void
+    {
+        $eventId = $payload['id'] ?? null;
+        $dispute = $payload['data']['object'];
+        $chargeId = $dispute['charge'] ?? null;
+
+        // IDEMPOTENCY CHECK
+        if ($eventId && ProcessedWebhookEvent::isProcessed($eventId)) {
+            Log::info('Webhook event already processed (charge.dispute.created)', [
+                'event_id' => $eventId,
+            ]);
+            return;
+        }
+
+        // Fetch the charge to get customer information
+        try {
+            $charge = $this->stripe->charges->retrieve($chargeId);
+            $stripeCustomerId = $charge->customer ?? null;
+
+            if (! $stripeCustomerId) {
+                Log::error('Stripe webhook: No customer found for disputed charge', [
+                    'charge_id' => $chargeId,
+                    'dispute_id' => $dispute['id'] ?? null,
+                ]);
+                return;
+            }
+
+            $user = User::where('stripe_id', $stripeCustomerId)->first();
+
+            if (! $user) {
+                Log::error('Stripe webhook: User not found for disputed charge', [
+                    'stripe_customer_id' => $stripeCustomerId,
+                    'charge_id' => $chargeId,
+                ]);
+                return;
+            }
+
+            // Find if this was a credit pack purchase
+            $creditTransaction = \App\Domain\Billing\Models\CreditTransaction::where('user_id', $user->id)
+                ->where('type', 'purchase')
+                ->where('metadata->charge_id', $chargeId)
+                ->first();
+
+            Log::error('CHARGEBACK ALERT: Dispute filed against charge', [
+                'user_id' => $user->id,
+                'user_email' => $user->email,
+                'user_name' => $user->name,
+                'charge_id' => $chargeId,
+                'dispute_id' => $dispute['id'] ?? null,
+                'dispute_amount' => $dispute['amount'] ?? null,
+                'dispute_reason' => $dispute['reason'] ?? null,
+                'is_credit_pack_purchase' => $creditTransaction !== null,
+                'credits_purchased' => $creditTransaction ? $creditTransaction->amount : null,
+                'current_credit_balance' => $user->credits_balance,
+                'requires_investigation' => true,
+            ]);
+
+            // Don't reverse credits yet - wait for dispute outcome
+            // If dispute is lost (charge.dispute.closed with status 'lost'), handle in separate webhook
+
+        } catch (\Exception $e) {
+            Log::error('Error processing dispute webhook', [
+                'charge_id' => $chargeId,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        // Mark event as processed
+        if ($eventId) {
+            ProcessedWebhookEvent::markAsProcessed(
+                $eventId,
+                'charge.dispute.created',
+                null, // May not have user_id if lookup failed
+                $payload
+            );
+        }
+    }
+
+    /**
      * Find a plan by Stripe price ID.
      */
     protected function findPlanByPriceId(?string $priceId): ?array
@@ -695,6 +891,11 @@ class StripeWebhookController extends CashierController
                 return $plan;
             }
         }
+
+        // Log warning if plan not found
+        Log::warning('Plan not found for Stripe price ID', [
+            'price_id' => $priceId,
+        ]);
 
         return null;
     }
